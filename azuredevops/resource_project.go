@@ -29,7 +29,6 @@ func resourceProject() *schema.Resource {
 		Schema: map[string]*schema.Schema{
 			"project_name": {
 				Type:             schema.TypeString,
-				ForceNew:         true,
 				Required:         true,
 				DiffSuppressFunc: tfhelper.DiffFuncSupressCaseSensitivity,
 			},
@@ -65,7 +64,7 @@ func resourceProject() *schema.Resource {
 
 func resourceProjectCreate(d *schema.ResourceData, m interface{}) error {
 	clients := m.(*aggregatedClient)
-	project, err := expandProject(clients, d)
+	project, err := expandProject(clients, d, true)
 	if err != nil {
 		return fmt.Errorf("Error converting terraform data model to AzDO project reference: %+v", err)
 	}
@@ -149,7 +148,34 @@ func projectRead(clients *aggregatedClient, projectID string, projectName string
 }
 
 func resourceProjectUpdate(d *schema.ResourceData, m interface{}) error {
+	time.Sleep(60 * time.Second)
+	clients := m.(*aggregatedClient)
+	project, err := expandProject(clients, d, false)
+	if err != nil {
+		return fmt.Errorf("Error converting terraform data model to AzDO project reference: %+v", err)
+	}
+
+	err = updateProject(clients, project, projectCreateTimeoutSeconds)
+	if err != nil {
+		return fmt.Errorf("Error updating project in Azure DevOps: %+v", err)
+	}
 	return resourceProjectRead(d, m)
+}
+
+func updateProject(clients *aggregatedClient, project *core.TeamProject, timeoutSeconds time.Duration) error {
+
+	operationRef, err := clients.CoreClient.UpdateProject(
+		clients.ctx,
+		core.UpdateProjectArgs{
+			ProjectUpdate: project,
+			ProjectId:     project.Id,
+		})
+
+	if err != nil {
+		return err
+	}
+
+	return waitForAsyncOperationSuccess(clients, operationRef, timeoutSeconds)
 }
 
 func resourceProjectDelete(d *schema.ResourceData, m interface{}) error {
@@ -177,7 +203,7 @@ func deleteProject(clients *aggregatedClient, id string, timeoutSeconds time.Dur
 }
 
 // Convert internal Terraform data structure to an AzDO data structure
-func expandProject(clients *aggregatedClient, d *schema.ResourceData) (*core.TeamProject, error) {
+func expandProject(clients *aggregatedClient, d *schema.ResourceData, forCreate bool) (*core.TeamProject, error) {
 	workItemTemplate := d.Get("work_item_template").(string)
 	processTemplateID, err := lookupProcessTemplateID(clients, workItemTemplate)
 	if err != nil {
@@ -192,19 +218,25 @@ func expandProject(clients *aggregatedClient, d *schema.ResourceData) (*core.Tea
 	}
 
 	visibility := d.Get("visibility").(string)
-	project := &core.TeamProject{
-		Id:          projectID,
-		Name:        converter.String(d.Get("project_name").(string)),
-		Description: converter.String(d.Get("description").(string)),
-		Visibility:  convertVisibilty(visibility),
-		Capabilities: &map[string]map[string]string{
+
+	var capabilities *map[string]map[string]string
+	if forCreate {
+		capabilities = &map[string]map[string]string{
 			"versioncontrol": {
 				"sourceControlType": d.Get("version_control").(string),
 			},
 			"processTemplate": {
 				"templateTypeId": processTemplateID,
 			},
-		},
+		}
+	}
+
+	project := &core.TeamProject{
+		Id:           projectID,
+		Name:         converter.String(d.Get("project_name").(string)),
+		Description:  converter.String(d.Get("description").(string)),
+		Visibility:   convertVisibilty(visibility),
+		Capabilities: capabilities,
 	}
 
 	return project, nil
