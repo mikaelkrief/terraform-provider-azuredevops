@@ -151,7 +151,6 @@ func projectRead(clients *aggregatedClient, projectID string, projectName string
 }
 
 func resourceProjectUpdate(d *schema.ResourceData, m interface{}) error {
-	time.Sleep(60 * time.Second)
 	clients := m.(*aggregatedClient)
 	project, err := expandProject(clients, d, false)
 	if err != nil {
