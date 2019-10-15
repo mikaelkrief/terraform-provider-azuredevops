@@ -45,17 +45,20 @@ func resourceProject() *schema.Resource {
 			},
 			"version_control": {
 				Type:         schema.TypeString,
+				ForceNew:     true,
 				Optional:     true,
 				Default:      "Git",
 				ValidateFunc: validation.StringInSlice([]string{"Git", "Tfvc"}, true),
 			},
 			"work_item_template": {
 				Type:     schema.TypeString,
+				ForceNew: true,
 				Optional: true,
 				Default:  "Agile",
 			},
 			"process_template_id": {
 				Type:     schema.TypeString,
+				ForceNew: true,
 				Computed: true,
 			},
 		},
