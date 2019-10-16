@@ -11,6 +11,7 @@ func Provider() *schema.Provider {
 			"azuredevops_build_definition": resourceBuildDefinition(),
 			"azuredevops_project":          resourceProject(),
 			"azuredevops_serviceendpoint":  resourceServiceEndpoint(),
+			"azuredevops_graph_membership": resourceGraphMembership(),
 		},
 		Schema: map[string]*schema.Schema{
 			"org_service_url": {
