@@ -3,10 +3,8 @@ package azuredevops
 import (
 	"fmt"
 
-	"github.com/google/uuid"
 	"github.com/hashicorp/terraform/helper/schema"
 
-	"github.com/microsoft/azure-devops-go-api/azuredevops/core"
 	"github.com/microsoft/azure-devops-go-api/azuredevops/git"
 	"github.com/microsoft/terraform-provider-azuredevops/azuredevops/utils/converter"
 )
@@ -19,7 +17,7 @@ func resourceAzureGitRepository() *schema.Resource {
 		Delete: resourceAzureGitRepositoryDelete,
 
 		Schema: map[string]*schema.Schema{
-			"project": {
+			"project_id": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
@@ -76,20 +74,17 @@ func resourceAzureGitRepositoryCreate(d *schema.ResourceData, m interface{}) err
 }
 
 func resourceAzureGitRepositoryRead(d *schema.ResourceData, m interface{}) error {
+	repoID := d.Id()
+	repoName := d.Get("name").(string)
+	projectID := d.Get("project_id").(string)
+
 	clients := m.(*aggregatedClient)
-
-	id := d.Id()
-	name := d.Get("name").(string)
-	projectNameOrId := d.Get("project").(string)
-	repo, err := azureGitRepositoryRead(clients, id, name, projectNameOrId)
+	repo, err := azureGitRepositoryRead(clients, repoID, repoName, projectID)
 	if err != nil {
-		return fmt.Errorf("Error looking up repository with ID %s and Name %s. Error: %v", id, name, err)
+		return fmt.Errorf("Error looking up repository with ID %s and Name %s. Error: %v", repoID, repoName, err)
 	}
 
-	err = flattenAzureGitRepository(clients, d, repo)
-	if err != nil {
-		return fmt.Errorf("Error flattening repository: %v", err)
-	}
+	flattenAzureGitRepository(clients, d, repo)
 	return nil
 }
 
@@ -102,37 +97,23 @@ func resourceAzureGitRepositoryDelete(d *schema.ResourceData, m interface{}) err
 }
 
 // Lookup an Azure Git Repository using the ID, or name if the ID is not set.
-// Note: This is a stubbed implementation and should be implemented in https://github.com/microsoft/terraform-provider-azuredevops/issues/94
-func azureGitRepositoryRead(clients *aggregatedClient, id string, name string, projectNameOrId string) (*git.GitRepository, error) {
-	identifier := id
+func azureGitRepositoryRead(clients *aggregatedClient, repoID string, repoName string, projectID string) (*git.GitRepository, error) {
+	identifier := repoID
 	if identifier == "" {
-		identifier = name
+		identifier = repoName
 	}
 
-	repoId, _ := uuid.NewUUID()
-	repo := git.GitRepository{
-		Id:              &repoId,
-		Name:            &name,
-		DefaultBranch:   converter.String("master"),
-		IsFork:          converter.Bool(false),
-		RemoteUrl:       converter.String(""),
-		SshUrl:          converter.String(""),
-		Url:             converter.String(""),
-		WebUrl:          converter.String(""),
-		ValidRemoteUrls: &[]string{},
-		Project: &core.TeamProjectReference{
-			Name: &projectNameOrId,
-		},
-	}
-
-	return &repo, nil
+	return clients.GitReposClient.GetRepository(clients.ctx, git.GetRepositoryArgs{
+		RepositoryId: converter.String(identifier),
+		Project:      converter.String(projectID),
+	})
 }
 
-func flattenAzureGitRepository(clients *aggregatedClient, d *schema.ResourceData, repository *git.GitRepository) error {
+func flattenAzureGitRepository(clients *aggregatedClient, d *schema.ResourceData, repository *git.GitRepository) {
 	d.SetId(repository.Id.String())
-	d.Set("name", converter.ToString(repository.Name, ""))
 
-	d.Set("project", repository.Project.Name)
+	d.Set("name", converter.ToString(repository.Name, ""))
+	d.Set("project_id", repository.Project.Id.String())
 	d.Set("default_branch", converter.ToString(repository.DefaultBranch, ""))
 	d.Set("is_fork", repository.IsFork)
 	d.Set("remote_url", converter.ToString(repository.RemoteUrl, ""))
@@ -141,6 +122,4 @@ func flattenAzureGitRepository(clients *aggregatedClient, d *schema.ResourceData
 	d.Set("url", converter.ToString(repository.Url, ""))
 	d.Set("web_url", converter.ToString(repository.WebUrl, ""))
 	d.Set("valid_remote_urls", repository.ValidRemoteUrls)
-
-	return nil
 }
