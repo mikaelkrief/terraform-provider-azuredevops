@@ -2,9 +2,10 @@ package azuredevops
 
 import (
 	"fmt"
+	"time"
 
+	"github.com/google/uuid"
 	"github.com/hashicorp/terraform/helper/schema"
-
 	"github.com/microsoft/azure-devops-go-api/azuredevops/git"
 	"github.com/microsoft/terraform-provider-azuredevops/azuredevops/utils/converter"
 )
@@ -94,6 +95,17 @@ func resourceAzureGitRepositoryUpdate(d *schema.ResourceData, m interface{}) err
 
 func resourceAzureGitRepositoryDelete(d *schema.ResourceData, m interface{}) error {
 	return nil
+}
+
+func deleteAzureGitRepository(clients *aggregatedClient, id string, timeoutSeconds time.Duration) error {
+	uuid, err := uuid.Parse(id)
+	if err != nil {
+		return fmt.Errorf("Invalid repositoryId UUID: %s", id)
+	}
+
+	return clients.GitReposClient.DeleteRepository(clients.ctx, git.DeleteRepositoryArgs{
+		RepositoryId: &uuid,
+	})
 }
 
 // Lookup an Azure Git Repository using the ID, or name if the ID is not set.
