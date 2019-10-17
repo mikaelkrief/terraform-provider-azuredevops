@@ -27,7 +27,7 @@ resource "azuredevops_project" "project" {
 
 // Defines a Git repository hosted in the project
 resource "azuredevops_azure_git_repository" "repository" {
-  project        = azuredevops_project.project.id
+  project_id     = azuredevops_project.project.id
   name           = "main-repo"
   default_branch = "master"
 }
@@ -90,9 +90,9 @@ resource "azuredevops_build_definition" "cicd" {
   # ]
 
   repository {
-    # repo_type   = azuredevops_git_repo.repository.type
-    # repo_name   = azuredevops_git_repo.repository.name
-    # branch_name = azuredevops_git_repo.repository.default_branch
+    repo_type   = "AzDevOps"
+    repo_name   = azuredevops_azure_git_repository.repository.name
+    branch_name = azuredevops_azure_git_repository.repository.default_branch
     yml_path    = "cicd/azure-pipelines-infra.yml"
   }
 }
