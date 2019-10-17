@@ -30,8 +30,7 @@ func resourceAzureGitRepository() *schema.Resource {
 			},
 			"default_branch": {
 				Type:     schema.TypeString,
-				Optional: true,
-				Default:  "",
+				Computed: true,
 			},
 			"is_fork": {
 				Type:     schema.TypeBool,
@@ -70,7 +69,7 @@ func resourceAzureGitRepositoryCreate(d *schema.ResourceData, m interface{}) err
 	clients := m.(*aggregatedClient)
 	repo, projectId, err := expandAzureGitRepository(clients, d)
 
-	createdRepo, err := createAzureGitRepository(clients, repo, projectId)
+	createdRepo, err := createAzureGitRepository(clients, repo.Name, projectId)
 	if err != nil {
 		return fmt.Errorf("Error creating project in Azure DevOps: %+v", err)
 	}
@@ -81,10 +80,10 @@ func resourceAzureGitRepositoryCreate(d *schema.ResourceData, m interface{}) err
 }
 
 // Make API call to create the repo
-func createAzureGitRepository(clients *aggregatedClient, repo *git.GitRepository, projectId *uuid.UUID) (*git.GitRepository, error) {
+func createAzureGitRepository(clients *aggregatedClient, repoName *string, projectId *uuid.UUID) (*git.GitRepository, error) {
 	args := git.CreateRepositoryArgs{
 		GitRepositoryToCreate: &git.GitRepositoryCreateOptions{
-			Name: repo.Name,
+			Name: repoName,
 			Project: &core.TeamProjectReference{
 				Id: projectId,
 			},
@@ -172,9 +171,8 @@ func expandAzureGitRepository(clients *aggregatedClient, d *schema.ResourceData)
 	}
 
 	repo := &git.GitRepository{
-		Id:            repoID,
-		Name:          converter.String(d.Get("name").(string)),
-		DefaultBranch: converter.String(d.Get("default_branch").(string)),
+		Id:   repoID,
+		Name: converter.String(d.Get("name").(string)),
 	}
 
 	return repo, &projectID, nil
