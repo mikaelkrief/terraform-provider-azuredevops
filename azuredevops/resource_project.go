@@ -17,8 +17,8 @@ import (
 	"github.com/microsoft/azure-devops-go-api/azuredevops/operations"
 )
 
-var projectCreateTimeoutSeconds time.Duration = 30
-var projectDeleteTimeoutSeconds time.Duration = 30
+var projectCreateTimeout time.Duration = 30
+var projectDeleteTimeout time.Duration = 30
 
 func resourceProject() *schema.Resource {
 	return &schema.Resource{
@@ -74,7 +74,7 @@ func resourceProjectCreate(d *schema.ResourceData, m interface{}) error {
 		return fmt.Errorf("Error converting terraform data model to AzDO project reference: %+v", err)
 	}
 
-	err = createProject(clients, project, projectCreateTimeoutSeconds)
+	err = createProject(clients, project, projectCreateTimeout)
 	if err != nil {
 		return fmt.Errorf("Error creating project in Azure DevOps: %+v", err)
 	}
@@ -168,7 +168,7 @@ func resourceProjectUpdate(d *schema.ResourceData, m interface{}) error {
 		return fmt.Errorf("Error converting terraform data model to AzDO project reference: %+v", err)
 	}
 
-	err = updateProject(clients, project, projectCreateTimeoutSeconds)
+	err = updateProject(clients, project, projectCreateTimeout)
 	if err != nil {
 		return fmt.Errorf("Error updating project in Azure DevOps: %+v", err)
 	}
@@ -195,7 +195,7 @@ func resourceProjectDelete(d *schema.ResourceData, m interface{}) error {
 	clients := m.(*aggregatedClient)
 	id := d.Id()
 
-	return deleteProject(clients, id, projectDeleteTimeoutSeconds)
+	return deleteProject(clients, id, projectDeleteTimeout)
 }
 
 func deleteProject(clients *aggregatedClient, id string, timeoutSeconds time.Duration) error {
