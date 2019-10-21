@@ -27,9 +27,7 @@ var testServiceEndpoint = serviceendpoint.ServiceEndpoint{
 		},
 		Scheme: converter.String("PersonalAccessToken"),
 	},
-	// Description: converter.String("UNIT_TEST_DESCRIPTION"),
-	Id: &testServiceEndpointID,
-	// IsShared:    converter.Bool(false),
+	Id:    &testServiceEndpointID,
 	Name:  converter.String("UNIT_TEST_NAME"),
 	Owner: converter.String("library"), // Supported values are "library", "agentcloud"
 	Type:  converter.String("UNIT_TEST_TYPE"),
