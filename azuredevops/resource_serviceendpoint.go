@@ -82,7 +82,7 @@ func resourceServiceEndpointRead(d *schema.ResourceData, m interface{}) error {
 		},
 	)
 	if err != nil {
-		return err //TODO: fmt.Errorf("Error looking up service endpoint given ID (%v) and project ID (%v): %v", serviceEndpointID, projectID, err)
+		return fmt.Errorf("Error looking up service endpoint given ID (%v) and project ID (%v): %v", serviceEndpointID, projectID, err)
 	}
 
 	flattenServiceEndpoint(d, serviceEndpoint, projectID)

@@ -70,7 +70,7 @@ func TestAzureDevOpsServiceEndpoint_Create_DoesNotSwallowError(t *testing.T) {
 		Times(1)
 
 	err := resourceServiceEndpointCreate(resourceData, clients)
-	require.Equal(t, "Error creating service endpoint in Azure DevOps: CreateServiceEndpoint() Failed", err.Error())
+	require.Contains(t, err.Error(), "CreateServiceEndpoint() Failed")
 }
 
 // verifies that if an error is produced on a read, it is not swallowed
@@ -92,7 +92,7 @@ func TestAzureDevOpsServiceEndpoint_Read_DoesNotSwallowError(t *testing.T) {
 		Times(1)
 
 	err := resourceServiceEndpointRead(resourceData, clients)
-	require.Equal(t, "GetServiceEndpoint() Failed", err.Error())
+	require.Contains(t, err.Error(), "GetServiceEndpoint() Failed")
 }
 
 // verifies that if an error is produced on a delete, it is not swallowed
@@ -114,7 +114,7 @@ func TestAzureDevOpsServiceEndpoint_Delete_DoesNotSwallowError(t *testing.T) {
 		Times(1)
 
 	err := resourceServiceEndpointDelete(resourceData, clients)
-	require.Equal(t, "DeleteServiceEndpoint() Failed", err.Error())
+	require.Contains(t, err.Error(), "DeleteServiceEndpoint() Failed")
 }
 
 // verifies that if an error is produced on an update, it is not swallowed
@@ -141,117 +141,5 @@ func TestAzureDevOpsServiceEndpoint_Update_DoesNotSwallowError(t *testing.T) {
 		Times(1)
 
 	err := resourceServiceEndpointUpdate(resourceData, clients)
-	require.Equal(t, "Error updating service endpoint in Azure DevOps: UpdateServiceEndpoint() Failed", err.Error())
+	require.Contains(t, err.Error(), "UpdateServiceEndpoint() Failed")
 }
-
-/**
- * Begin acceptance tests
- */
-
-// // validates that an apply followed by another apply (i.e., resource update) will be reflected in AzDO and the
-// // underlying terraform state.
-// func TestAccAzureDevOpsBuildDefinition_CreateAndUpdate(t *testing.T) {
-// 	projectName := testAccResourcePrefix + acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
-// 	buildDefinitionNameFirst := testAccResourcePrefix + acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
-// 	buildDefinitionNameSecond := testAccResourcePrefix + acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
-
-// 	tfBuildDefNode := "azuredevops_build_definition.build"
-// 	resource.Test(t, resource.TestCase{
-// 		PreCheck:     func() { testAccPreCheck(t) },
-// 		Providers:    testAccProviders,
-// 		CheckDestroy: testAccBuildDefinitionCheckDestroy,
-// 		Steps: []resource.TestStep{
-// 			{
-// 				Config: testAccBuildDefinitionResource(projectName, buildDefinitionNameFirst),
-// 				Check: resource.ComposeTestCheckFunc(
-// 					resource.TestCheckResourceAttrSet(tfBuildDefNode, "project_id"),
-// 					resource.TestCheckResourceAttrSet(tfBuildDefNode, "revision"),
-// 					resource.TestCheckResourceAttr(tfBuildDefNode, "name", buildDefinitionNameFirst),
-// 					testAccCheckBuildDefinitionResourceExists(buildDefinitionNameFirst),
-// 				),
-// 			}, {
-// 				Config: testAccBuildDefinitionResource(projectName, buildDefinitionNameSecond),
-// 				Check: resource.ComposeTestCheckFunc(
-// 					resource.TestCheckResourceAttrSet(tfBuildDefNode, "project_id"),
-// 					resource.TestCheckResourceAttrSet(tfBuildDefNode, "revision"),
-// 					resource.TestCheckResourceAttr(tfBuildDefNode, "name", buildDefinitionNameSecond),
-// 					testAccCheckBuildDefinitionResourceExists(buildDefinitionNameSecond),
-// 				),
-// 			},
-// 		},
-// 	})
-// }
-
-// // HCL describing an AzDO build definition
-// func testAccBuildDefinitionResource(projectName string, buildDefinitionName string) string {
-// 	buildDefinitionResource := fmt.Sprintf(`
-// resource "azuredevops_build_definition" "build" {
-// 	project_id      = azuredevops_project.project.id
-// 	name            = "%s"
-// 	agent_pool_name = "Hosted Ubuntu 1604"
-
-// 	repository {
-// 	  repo_type             = "GitHub"
-// 	  repo_name             = "repoOrg/repoName"
-// 	  branch_name           = "branch"
-// 	  yml_path              = "path/to/yaml"
-// 	}
-// }`, buildDefinitionName)
-
-// 	projectResource := testAccProjectResource(projectName)
-// 	return fmt.Sprintf("%s\n%s", projectResource, buildDefinitionResource)
-// }
-
-// // Given the name of an AzDO build definition, this will return a function that will check whether
-// // or not the definition (1) exists in the state and (2) exist in AzDO and (3) has the correct name
-// func testAccCheckBuildDefinitionResourceExists(expectedName string) resource.TestCheckFunc {
-// 	return func(s *terraform.State) error {
-// 		buildDef, ok := s.RootModule().Resources["azuredevops_build_definition.build"]
-// 		if !ok {
-// 			return fmt.Errorf("Did not find a build definition in the TF state")
-// 		}
-
-// 		buildDefinition, err := getBuildDefinitionFromResource(buildDef)
-// 		if err != nil {
-// 			return err
-// 		}
-
-// 		if *buildDefinition.Name != expectedName {
-// 			return fmt.Errorf("Build Definition has Name=%s, but expected Name=%s", *buildDefinition.Name, expectedName)
-// 		}
-
-// 		return nil
-// 	}
-// }
-
-// // verifies that all build definitions referenced in the state are destroyed. This will be invoked
-// // *after* terrafform destroys the resource but *before* the state is wiped clean.
-// func testAccBuildDefinitionCheckDestroy(s *terraform.State) error {
-// 	for _, resource := range s.RootModule().Resources {
-// 		if resource.Type != "azuredevops_build_definition" {
-// 			continue
-// 		}
-
-// 		// indicates the build definition still exists - this should fail the test
-// 		if _, err := getBuildDefinitionFromResource(resource); err == nil {
-// 			return fmt.Errorf("Unexpectedly found a build definition that should be deleted")
-// 		}
-// 	}
-
-// 	return nil
-// }
-
-// // given a resource from the state, return a build definition (and error)
-// func getBuildDefinitionFromResource(resource *terraform.ResourceState) (*build.BuildDefinition, error) {
-// 	buildDefID, err := strconv.Atoi(resource.Primary.ID)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	projectID := resource.Primary.Attributes["project_id"]
-// 	clients := testAccProvider.Meta().(*aggregatedClient)
-// 	return clients.BuildClient.GetDefinition(clients.ctx, build.GetDefinitionArgs{
-// 		Project:      &projectID,
-// 		DefinitionId: &buildDefID,
-// 	})
-// }
