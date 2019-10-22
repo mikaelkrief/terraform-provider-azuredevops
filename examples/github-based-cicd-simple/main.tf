@@ -25,11 +25,11 @@ resource "azuredevops_build_definition" "build_definition" {
     repo_name             = "nmiodice/terraform-azure-devops-hack"
     branch_name           = "master"
     yml_path              = "azdo-api-samples/azure-pipeline.yml"
-    service_connection_id = azuredevops_serviceendpoint.github_serviceendpoint.id
+    service_connection_id = azuredevops_serviceend_point.github_service_endpoint.id
   }
 }
 
-resource "azuredevops_serviceendpoint" "github_serviceendpoint" {
+resource "azuredevops_service_endpoint" "github_service_endpoint" {
   project_id             = azuredevops_project.project.id
   service_endpoint_name  = "GitHub Service Connection"
   service_endpoint_type  = "github"

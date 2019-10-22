@@ -32,7 +32,7 @@ resource "azuredevops_azure_git_repository" "repository" {
 }
 
 // Defines an ARM service connection
-# resource "azuredevops_serviceendpoint" "arm" {
+# resource "azuredevops_serviceend_point" "arm" {
 #   project_id            = azuredevops_project.project.id
 #   service_endpoint_name = "ARM Service Connection"
 #   service_endpoint_type = "arm"
@@ -57,7 +57,7 @@ resource "azuredevops_azure_git_repository" "repository" {
 #   name       = "My First Variable Group"
 #   values = [{
 #     name      = "SERVICE_CONNECTION_ID"
-#     value     = azuredevops_serviceendpoint.arm.id
+#     value     = azuredevops_serviceend_point.arm.id
 #     is_secret = false
 #     }, {
 #     name      = "MY_SECRET_1"

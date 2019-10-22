@@ -11,7 +11,7 @@ resource "azuredevops_project" "project" {
   work_item_template = "Agile"
 }
 
-resource "azuredevops_serviceendpoint" "github_serviceendpoint" {
+resource "azuredevops_service_endpoint" "github_service_endpoint" {
   project_id             = azuredevops_project.project.id
   service_endpoint_name  = "GitHub Service Connection"
   service_endpoint_type  = "github"
@@ -29,6 +29,6 @@ resource "azuredevops_build_definition" "nightly_build" {
     repo_name             = "microsoft/terraform-provider-azuredevops"
     branch_name           = "master"
     yml_path              = ".azdo/azure-pipeline-nightly.yml"
-    service_connection_id = azuredevops_serviceendpoint.github_serviceendpoint.id
+    service_connection_id = azuredevops_service_endpoint.github_service_endpoint.id
   }
 }

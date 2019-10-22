@@ -17,7 +17,7 @@ func TestAzureDevOpsProvider_HasChildResources(t *testing.T) {
 	expectedResources := []string{
 		"azuredevops_build_definition",
 		"azuredevops_project",
-		"azuredevops_serviceendpoint",
+		"azuredevops_service_endpoint",
 		"azuredevops_azure_git_repository",
 	}
 

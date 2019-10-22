@@ -10,7 +10,7 @@ func Provider() *schema.Provider {
 		ResourcesMap: map[string]*schema.Resource{
 			"azuredevops_build_definition":     resourceBuildDefinition(),
 			"azuredevops_project":              resourceProject(),
-			"azuredevops_serviceendpoint":      resourceServiceEndpoint(),
+			"azuredevops_service_endpoint":     resourceServiceEndpoint(),
 			"azuredevops_azure_git_repository": resourceAzureGitRepository(),
 		},
 		Schema: map[string]*schema.Schema{
