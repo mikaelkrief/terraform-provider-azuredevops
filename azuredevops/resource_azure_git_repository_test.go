@@ -48,6 +48,7 @@ func TestAzureGitRepo_Create_DoesNotSwallowErrorFromFailedCreateCall(t *testing.
 
 	resourceData := schema.TestResourceDataRaw(t, resourceAzureGitRepository().Schema, nil)
 	flattenAzureGitRepository(resourceData, &testAzureGitRepository)
+	configureCleanInitialization(resourceData)
 
 	reposClient := azdosdkmocks.NewMockGitClient(ctrl)
 	clients := &aggregatedClient{GitReposClient: reposClient, ctx: context.Background()}
@@ -78,6 +79,7 @@ func TestAzureGitRepo_Update_DoesNotSwallowErrorFromFailedCreateCall(t *testing.
 
 	resourceData := schema.TestResourceDataRaw(t, resourceAzureGitRepository().Schema, nil)
 	flattenAzureGitRepository(resourceData, &testAzureGitRepository)
+	configureCleanInitialization(resourceData)
 
 	reposClient := azdosdkmocks.NewMockGitClient(ctrl)
 	clients := &aggregatedClient{GitReposClient: reposClient, ctx: context.Background()}
@@ -92,6 +94,14 @@ func TestAzureGitRepo_Update_DoesNotSwallowErrorFromFailedCreateCall(t *testing.
 	require.Regexp(t, ".*UpdateAzureGitRepository\\(\\) Failed$", err.Error())
 }
 
+func configureCleanInitialization(d *schema.ResourceData) {
+	d.Set("initialization", &[]map[string]interface{}{
+		{
+			"init_type": "Clean",
+		},
+	})
+}
+
 // verifies that a round-trip flatten/expand sequence will not result in data loss of non-computed properties.
 //	Note: there is no need to expand computed properties, so they won't be tested here.
 func TestAzureGitRepo_FlattenExpand_RoundTrip(t *testing.T) {
@@ -104,12 +114,16 @@ func TestAzureGitRepo_FlattenExpand_RoundTrip(t *testing.T) {
 
 	resourceData := schema.TestResourceDataRaw(t, resourceAzureGitRepository().Schema, nil)
 	flattenAzureGitRepository(resourceData, &gitRepo)
+	configureCleanInitialization(resourceData)
 
-	expandedGitRepo, expandedProjectID, err := expandAzureGitRepository(resourceData)
+	expandedGitRepo, repoInitialization, expandedProjectID, err := expandAzureGitRepository(resourceData)
 
 	require.Nil(t, err)
 	require.Equal(t, *expandedGitRepo.Id, repoID)
 	require.Equal(t, *expandedProjectID, projectID)
+	require.Equal(t, repoInitialization.initType, "Clean")
+	require.Equal(t, repoInitialization.sourceType, "")
+	require.Equal(t, repoInitialization.sourceURL, "")
 }
 
 // verifies that the read operation is considered failed if the initial API
@@ -308,6 +322,9 @@ func testAccAzureGitRepoResource(projectName string, gitRepoName string) string 
 resource "azuredevops_azure_git_repository" "gitrepo" {
 	project_id      = azuredevops_project.project.id
 	name            = "%s"
+	initialization {
+		init_type = "Clean"
+	}
 }`, gitRepoName)
 
 	projectResource := testAccProjectResource(projectName)
