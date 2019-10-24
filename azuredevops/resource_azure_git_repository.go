@@ -71,12 +71,12 @@ func resourceAzureGitRepository() *schema.Resource {
 						"source_type": {
 							Type:     schema.TypeString,
 							Optional: true,
-							Default:  "master",
+							Default:  "",
 						},
 						"source_url": {
 							Type:     schema.TypeString,
 							Optional: true,
-							Default:  "master",
+							Default:  "",
 						},
 					},
 				},

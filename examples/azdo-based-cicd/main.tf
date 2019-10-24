@@ -18,9 +18,9 @@ provider "azuredevops" {
 
 // Defines the project in AzDO. This project will host Git repositories
 resource "azuredevops_project" "project" {
-  project_name       = "Super Awesome Project"
-  description        = "A project to track super awesome things."
-  visibility         = "private"
+  project_name = "Super Awesome Project"
+  description  = "A project to track super awesome things."
+  visibility   = "private"
   # enable_tfvc        = false
   work_item_template = "Agile"
 }
