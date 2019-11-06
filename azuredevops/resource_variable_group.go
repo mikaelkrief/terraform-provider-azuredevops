@@ -6,6 +6,7 @@ import (
 	"github.com/microsoft/azure-devops-go-api/azuredevops/taskagent"
 	"github.com/microsoft/terraform-provider-azuredevops/azuredevops/utils/converter"
 	"strconv"
+	"strings"
 )
 
 func resourceVariableGroup() *schema.Resource {
@@ -65,21 +66,41 @@ func resourceVariableGroup() *schema.Resource {
 	}
 }
 
+func GetComputedId(clients *aggregatedClient, id string) (string, int, error) {
+	parts := strings.SplitN(id, "/", 2)
+
+	if len(parts) != 2 || parts[0] == "" || parts[1] == "" {
+		return "", 0, fmt.Errorf("unexpected format of ID (%s), expected projectid/groupId", id)
+	}
+
+	projectName := parts[0]
+	groupId, err := strconv.Atoi(parts[1])
+	if err != nil {
+		return "", 0, fmt.Errorf("Error converting getting the varioable group id: %+v", err)
+	}
+
+	currentProject, err := projectRead(clients, "", projectName)
+	if err != nil {
+		return "", 0, err
+	}
+
+	return currentProject.Id.String(), groupId, nil
+}
+
 func resourceVariableGroupCreate(d *schema.ResourceData, m interface{}) error {
 	clients := m.(*aggregatedClient)
-	variableGroup, projectID, err := expandVariableGroup(d)
+	variableGroup, projectID, err := expandVariableGroup(d, nil)
 	if err != nil {
 		return fmt.Errorf("Error converting terraform data model to AzDO variable group reference: %+v", err)
 	}
 
 	group := &taskagent.VariableGroupParameters{
-		Description: variableGroup.Description,
-		Name:        variableGroup.Name,
-		Type:        variableGroup.Type,
-		Variables:   variableGroup.Variables,
+		Description:  variableGroup.Description,
+		Name:         variableGroup.Name,
+		Type:         variableGroup.Type,
+		Variables:    variableGroup.Variables,
 		ProviderData: nil,
 	}
-
 
 	createdVariableGroup, err := createVariableGroup(clients, group, projectID)
 	if err != nil {
@@ -92,7 +113,6 @@ func resourceVariableGroupCreate(d *schema.ResourceData, m interface{}) error {
 
 func createVariableGroup(clients *aggregatedClient, variableGroup *taskagent.VariableGroupParameters, project string) (*taskagent.VariableGroup, error) {
 
-
 	createdVariableGroup, err := clients.TaskAgentClient.AddVariableGroup(clients.ctx, taskagent.AddVariableGroupArgs{
 		Group:   variableGroup,
 		Project: &project,
@@ -102,23 +122,23 @@ func createVariableGroup(clients *aggregatedClient, variableGroup *taskagent.Var
 }
 
 // Convert internal Terraform data structure to an AzDO data structure
-func expandVariableGroup(d *schema.ResourceData) (*taskagent.VariableGroup, string, error) {
+func expandVariableGroup(d *schema.ResourceData, variableGroupId *int) (*taskagent.VariableGroup, string, error) {
 	projectID := d.Get("project_id").(string)
 	variables := expandVariables(d)
 
 	// Look for the ID. This may not exist if we are within the context of a "create" operation,
 	// so it is OK if it is missing.
 
-	variableGroupID, err := strconv.Atoi(d.Id())
-	var variableGroupReference *int
+	//variableGroupID, err := strconv.Atoi(d.Id())
+	/*var variableGroupReference *int
 	if err == nil {
 		variableGroupReference = &variableGroupID
 	} else {
 		variableGroupReference = nil
-	}
+	}*/
 
 	variableGroup := taskagent.VariableGroup{
-		Id:          variableGroupReference,
+		Id:          variableGroupId,
 		Name:        converter.String(d.Get("name").(string)),
 		Description: converter.String(d.Get("description").(string)),
 		Type:        converter.String("Vsts"),
@@ -128,45 +148,18 @@ func expandVariableGroup(d *schema.ResourceData) (*taskagent.VariableGroup, stri
 	return &variableGroup, projectID, nil
 }
 
-
-
 func flattenVariableGroup(d *schema.ResourceData, variableGroup *taskagent.VariableGroup, projectID string) {
-	d.SetId(strconv.Itoa(*variableGroup.Id))
+	d.SetId(fmt.Sprintf("%s/%d", projectID, *variableGroup.Id))
 
 	d.Set("project_id", projectID)
 	d.Set("name", *variableGroup.Name)
+	d.Set("type", variableGroup.Type)
+	d.Set("description", variableGroup.Description)
+	d.Set("allow_access", true)
 	variables := flattenVariables(*variableGroup.Variables)
 	d.Set("variables", variables)
-	d.Set("type", variableGroup.Type)
 
 }
-
-
-
-/*
-func expandVariables(d *schema.ResourceData) map[string]taskagent.VariableValue {
-	if vars := d.Get("variables").(*schema.Set).List(); vars.Len() > 0 {
-		_variables := make(map[string]taskagent.VariableValue, vars.Len())
-		for _, vrVar := range vars.List() {
-			vrVar := vrVar.(map[string]interface{})
-
-			name := vrVar["name"].(string)
-			value := vrVar["value"].(string)
-
-			isSecret := vrVar["is_secret"].(bool)
-			variable := taskagent.VariableValue{
-				Value:    &value,
-				IsSecret: &isSecret,
-			}
-			valueMap := variable
-
-			_variables[name] = valueMap
-		}
-		return _variables
-	}
-	return nil
-}
-*/
 
 func expandVariables(d *schema.ResourceData) map[string]taskagent.VariableValue {
 	input := d.Get("variables").(*schema.Set).List()
@@ -180,33 +173,13 @@ func expandVariables(d *schema.ResourceData) map[string]taskagent.VariableValue 
 		varIsSecret := vals["is_secret"].(bool)
 
 		output[varName] = taskagent.VariableValue{
-			Value: &varValue,
+			Value:    &varValue,
 			IsSecret: &varIsSecret,
 		}
 	}
 
 	return output
 }
-
-
-/*
-func flattenVariables(variables map[string]taskagent.VariableValue) map[string]interface{} {
-
-	var out = make(map[string]interface{})
-
-	for i, v := range variables {
-		m := make(map[string]interface{})
-		m["name"] = i
-		m["value"] = v.Value
-		m["is_secret"] = v.IsSecret
-
-		out[i] = m
-	}
-
-
-	return out
-
-}*/
 
 func flattenVariables(input map[string]taskagent.VariableValue) []interface{} {
 	results := make([]interface{}, 0)
@@ -226,10 +199,15 @@ func flattenVariables(input map[string]taskagent.VariableValue) []interface{} {
 	return results
 }
 
-
 func resourceVariableGroupUpdate(d *schema.ResourceData, m interface{}) error {
 	clients := m.(*aggregatedClient)
-	variableGroup, projectID, err := expandVariableGroup(d)
+
+	projectID, variableGroupID, err := GetComputedId(clients, d.Id())
+	if err != nil {
+		return err
+	}
+
+	variableGroup, projectID, err := expandVariableGroup(d, &variableGroupID)
 	if err != nil {
 		return err
 	}
@@ -257,8 +235,9 @@ func resourceVariableGroupUpdate(d *schema.ResourceData, m interface{}) error {
 
 func resourceVariableGroupRead(d *schema.ResourceData, m interface{}) error {
 	clients := m.(*aggregatedClient)
-	projectID, variableGroupID, err := parseIdentifiers(d)
+	//projectID, variableGroupID, err := parseIdentifiers(d)
 
+	projectID, variableGroupID, err := GetComputedId(clients, d.Id())
 	if err != nil {
 		return err
 	}
