@@ -13,6 +13,7 @@ import (
 	"github.com/microsoft/azure-devops-go-api/azuredevops/memberentitlementmanagement"
 	"github.com/microsoft/azure-devops-go-api/azuredevops/operations"
 	"github.com/microsoft/azure-devops-go-api/azuredevops/serviceendpoint"
+	"github.com/microsoft/azure-devops-go-api/azuredevops/taskagent"
 )
 
 // Aggregates all of the underlying clients into a single data
@@ -30,6 +31,7 @@ type aggregatedClient struct {
 	OperationsClient              operations.Client
 	ServiceEndpointClient         serviceendpoint.Client
 	MemberEntitleManagementClient memberentitlementmanagement.Client
+	TaskAgentClient               taskagent.Client
 	ctx                           context.Context
 }
 
@@ -95,6 +97,14 @@ func getAzdoClient(azdoPAT string, organizationURL string) (*aggregatedClient, e
 		return nil, err
 	}
 
+	// client for these APIs (includes CRUD for AzDO Task Agent):
+	//	https://docs.microsoft.com/en-us/rest/api/azure/devops/distributedtask/?view=azure-devops-rest-5.1
+	taskAgentClient, err := taskagent.NewClient(ctx, connection)
+	if err != nil {
+		log.Printf("getAzdoClient(): taskagent.NewClient failed.")
+		return nil, err
+	}
+
 	aggregatedClient := &aggregatedClient{
 		CoreClient:                    coreClient,
 		BuildClient:                   buildClient,
@@ -103,6 +113,7 @@ func getAzdoClient(azdoPAT string, organizationURL string) (*aggregatedClient, e
 		OperationsClient:              operationsClient,
 		ServiceEndpointClient:         serviceEndpointClient,
 		MemberEntitleManagementClient: memberentitlementmanagementClient,
+		TaskAgentClient:               taskAgentClient,
 		ctx:                           ctx,
 	}
 

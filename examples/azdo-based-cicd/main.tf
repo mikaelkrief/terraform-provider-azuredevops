@@ -50,6 +50,7 @@ resource "azuredevops_build_definition" "build" {
 # resource "azuredevops_variable_group" "vg" {
 #   project_id   = azuredevops_project.id
 #   name         = "Sample VG 1"
+#   description  = "Description of Sample VG1"
 #   allow_access = true
 #   variables {
 #     key       = "key1"
