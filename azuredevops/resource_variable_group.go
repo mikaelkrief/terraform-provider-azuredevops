@@ -66,6 +66,108 @@ func resourceVariableGroup() *schema.Resource {
 	}
 }
 
+func resourceVariableGroupCreate(d *schema.ResourceData, m interface{}) error {
+	clients := m.(*aggregatedClient)
+	variableGroup, projectID, err := expandVariableGroup(d, nil)
+	if err != nil {
+		return fmt.Errorf("Error converting terraform data model to AzDO variable group reference: %+v", err)
+	}
+
+	varGroup := &taskagent.VariableGroupParameters{
+		Description:  variableGroup.Description,
+		Name:         variableGroup.Name,
+		Type:         variableGroup.Type,
+		Variables:    variableGroup.Variables,
+		ProviderData: nil,
+	}
+
+	createdVariableGroup, err := clients.TaskAgentClient.AddVariableGroup(clients.ctx, taskagent.AddVariableGroupArgs{
+		Group:   varGroup,
+		Project: &projectID,
+	})
+
+	if err != nil {
+		return fmt.Errorf("Error creating variable group in Azure DevOps: %+v", err)
+	}
+
+	flattenVariableGroup(d, createdVariableGroup, projectID)
+	return nil
+}
+
+func resourceVariableGroupUpdate(d *schema.ResourceData, m interface{}) error {
+	clients := m.(*aggregatedClient)
+
+	projectID, variableGroupID, err := GetComputedId(clients, d.Id())
+	if err != nil {
+		return err
+	}
+
+	variableGroup, projectID, err := expandVariableGroup(d, &variableGroupID)
+	if err != nil {
+		return err
+	}
+
+	group := taskagent.VariableGroupParameters{
+		Description: variableGroup.Description,
+		Name:        variableGroup.Name,
+		Type:        variableGroup.Type,
+		Variables:   variableGroup.Variables,
+	}
+
+	updatedVariableGroup, err := clients.TaskAgentClient.UpdateVariableGroup(m.(*aggregatedClient).ctx, taskagent.UpdateVariableGroupArgs{
+		Group:   &group,
+		Project: &projectID,
+		GroupId: variableGroup.Id,
+	})
+
+	if err != nil {
+		return err
+	}
+
+	flattenVariableGroup(d, updatedVariableGroup, projectID)
+	return nil
+}
+
+func resourceVariableGroupRead(d *schema.ResourceData, m interface{}) error {
+	clients := m.(*aggregatedClient)
+
+	projectID, variableGroupID, err := GetComputedId(clients, d.Id())
+	if err != nil {
+		return err
+	}
+
+	variableGroup, err := clients.TaskAgentClient.GetVariableGroup(clients.ctx, taskagent.GetVariableGroupArgs{
+		Project: &projectID,
+		GroupId: &variableGroupID,
+	})
+
+	if err != nil {
+		return err
+	}
+
+	flattenVariableGroup(d, variableGroup, projectID)
+	return nil
+}
+
+func resourceVariableGroupDelete(d *schema.ResourceData, m interface{}) error {
+	if d.Id() == "" {
+		return nil
+	}
+
+	clients := m.(*aggregatedClient)
+	projectID, variableGroupID, err := parseIdentifiers(d)
+	if err != nil {
+		return err
+	}
+
+	err = clients.TaskAgentClient.DeleteVariableGroup(m.(*aggregatedClient).ctx, taskagent.DeleteVariableGroupArgs{
+		Project: &projectID,
+		GroupId: &variableGroupID,
+	})
+
+	return err
+}
+
 func GetComputedId(clients *aggregatedClient, id string) (string, int, error) {
 	parts := strings.SplitN(id, "/", 2)
 
@@ -76,7 +178,7 @@ func GetComputedId(clients *aggregatedClient, id string) (string, int, error) {
 	projectName := parts[0]
 	groupId, err := strconv.Atoi(parts[1])
 	if err != nil {
-		return "", 0, fmt.Errorf("Error converting getting the varioable group id: %+v", err)
+		return "", 0, fmt.Errorf("Error converting getting the variable group id: %+v", err)
 	}
 
 	currentProject, err := projectRead(clients, "", projectName)
@@ -87,55 +189,10 @@ func GetComputedId(clients *aggregatedClient, id string) (string, int, error) {
 	return currentProject.Id.String(), groupId, nil
 }
 
-func resourceVariableGroupCreate(d *schema.ResourceData, m interface{}) error {
-	clients := m.(*aggregatedClient)
-	variableGroup, projectID, err := expandVariableGroup(d, nil)
-	if err != nil {
-		return fmt.Errorf("Error converting terraform data model to AzDO variable group reference: %+v", err)
-	}
-
-	group := &taskagent.VariableGroupParameters{
-		Description:  variableGroup.Description,
-		Name:         variableGroup.Name,
-		Type:         variableGroup.Type,
-		Variables:    variableGroup.Variables,
-		ProviderData: nil,
-	}
-
-	createdVariableGroup, err := createVariableGroup(clients, group, projectID)
-	if err != nil {
-		return fmt.Errorf("Error creating variable group in Azure DevOps: %+v", err)
-	}
-
-	flattenVariableGroup(d, createdVariableGroup, projectID)
-	return nil
-}
-
-func createVariableGroup(clients *aggregatedClient, variableGroup *taskagent.VariableGroupParameters, project string) (*taskagent.VariableGroup, error) {
-
-	createdVariableGroup, err := clients.TaskAgentClient.AddVariableGroup(clients.ctx, taskagent.AddVariableGroupArgs{
-		Group:   variableGroup,
-		Project: &project,
-	})
-
-	return createdVariableGroup, err
-}
-
 // Convert internal Terraform data structure to an AzDO data structure
 func expandVariableGroup(d *schema.ResourceData, variableGroupId *int) (*taskagent.VariableGroup, string, error) {
 	projectID := d.Get("project_id").(string)
 	variables := expandVariables(d)
-
-	// Look for the ID. This may not exist if we are within the context of a "create" operation,
-	// so it is OK if it is missing.
-
-	//variableGroupID, err := strconv.Atoi(d.Id())
-	/*var variableGroupReference *int
-	if err == nil {
-		variableGroupReference = &variableGroupID
-	} else {
-		variableGroupReference = nil
-	}*/
 
 	variableGroup := taskagent.VariableGroup{
 		Id:          variableGroupId,
@@ -197,79 +254,4 @@ func flattenVariables(input map[string]taskagent.VariableValue) []interface{} {
 	}
 
 	return results
-}
-
-func resourceVariableGroupUpdate(d *schema.ResourceData, m interface{}) error {
-	clients := m.(*aggregatedClient)
-
-	projectID, variableGroupID, err := GetComputedId(clients, d.Id())
-	if err != nil {
-		return err
-	}
-
-	variableGroup, projectID, err := expandVariableGroup(d, &variableGroupID)
-	if err != nil {
-		return err
-	}
-
-	group := taskagent.VariableGroupParameters{
-		Description: variableGroup.Description,
-		Name:        variableGroup.Name,
-		Type:        variableGroup.Type,
-		Variables:   variableGroup.Variables,
-	}
-
-	updatedVariableGroup, err := clients.TaskAgentClient.UpdateVariableGroup(m.(*aggregatedClient).ctx, taskagent.UpdateVariableGroupArgs{
-		Group:   &group,
-		Project: &projectID,
-		GroupId: variableGroup.Id,
-	})
-
-	if err != nil {
-		return err
-	}
-
-	flattenVariableGroup(d, updatedVariableGroup, projectID)
-	return nil
-}
-
-func resourceVariableGroupRead(d *schema.ResourceData, m interface{}) error {
-	clients := m.(*aggregatedClient)
-	//projectID, variableGroupID, err := parseIdentifiers(d)
-
-	projectID, variableGroupID, err := GetComputedId(clients, d.Id())
-	if err != nil {
-		return err
-	}
-
-	variableGroup, err := clients.TaskAgentClient.GetVariableGroup(clients.ctx, taskagent.GetVariableGroupArgs{
-		Project: &projectID,
-		GroupId: &variableGroupID,
-	})
-
-	if err != nil {
-		return err
-	}
-
-	flattenVariableGroup(d, variableGroup, projectID)
-	return nil
-}
-
-func resourceVariableGroupDelete(d *schema.ResourceData, m interface{}) error {
-	if d.Id() == "" {
-		return nil
-	}
-
-	clients := m.(*aggregatedClient)
-	projectID, variableGroupID, err := parseIdentifiers(d)
-	if err != nil {
-		return err
-	}
-
-	err = clients.TaskAgentClient.DeleteVariableGroup(m.(*aggregatedClient).ctx, taskagent.DeleteVariableGroupArgs{
-		Project: &projectID,
-		GroupId: &variableGroupID,
-	})
-
-	return err
 }
