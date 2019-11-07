@@ -54,17 +54,27 @@ func resourceVariableGroup() *schema.Resource {
 							Type:     schema.TypeString,
 							Required: true,
 						},
-						"is_secret": {
-							Type:     schema.TypeBool,
-							Optional: true,
-							Default:  false,
+					},
+				},
+			},
+			"variables_secret": {
+				Type:     schema.TypeSet,
+				Optional: true,
+
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"name": {
+							Type:     schema.TypeString,
+							Required: true,
 						},
 					},
 				},
+
 			},
 		},
 	}
 }
+
 
 func resourceVariableGroupCreate(d *schema.ResourceData, m interface{}) error {
 	clients := m.(*aggregatedClient)
@@ -214,24 +224,40 @@ func flattenVariableGroup(d *schema.ResourceData, variableGroup *taskagent.Varia
 	d.Set("description", variableGroup.Description)
 	d.Set("allow_access", true)
 	variables := flattenVariables(*variableGroup.Variables)
+	variablesSecret := flattenVariablesSecret(*variableGroup.Variables)
 	d.Set("variables", variables)
+	d.Set("variables_secret", variablesSecret)
 
 }
 
 func expandVariables(d *schema.ResourceData) map[string]taskagent.VariableValue {
-	input := d.Get("variables").(*schema.Set).List()
-	output := make(map[string]taskagent.VariableValue, len(input))
+	vars := d.Get("variables").(*schema.Set).List()
+	varsSecret := d.Get("variables_secret").(*schema.Set).List()
+	output := make(map[string]taskagent.VariableValue, len(vars)+len(varsSecret))
 
-	for _, v := range input {
+	for _, v := range vars {
 		vals := v.(map[string]interface{})
 
 		varName := vals["name"].(string)
 		varValue := vals["value"].(string)
-		varIsSecret := vals["is_secret"].(bool)
 
+		isSecret, _ := strconv.ParseBool("false")
 		output[varName] = taskagent.VariableValue{
 			Value:    &varValue,
-			IsSecret: &varIsSecret,
+			IsSecret: &isSecret,
+		}
+	}
+
+	for _, v := range varsSecret {
+		vals := v.(map[string]interface{})
+
+		varName := vals["name"].(string)
+		//varValue := vals["value"].(string)
+
+		isSecret, _ := strconv.ParseBool("true")
+		output[varName] = taskagent.VariableValue{
+			//Value:    &varValue,
+			IsSecret: &isSecret,
 		}
 	}
 
@@ -242,15 +268,29 @@ func flattenVariables(input map[string]taskagent.VariableValue) []interface{} {
 	results := make([]interface{}, 0)
 
 	for k, v := range input {
-		result := make(map[string]interface{})
-		result["name"] = k
-		if v.IsSecret != nil {
-			result["is_secret"] = *v.IsSecret
+		if v.IsSecret == nil {
+			result := make(map[string]interface{})
+			result["name"] = k
+			if v.Value != nil {
+				result["value"] = *v.Value
+			}
+			results = append(results, result)
 		}
-		if v.Value != nil {
-			result["value"] = *v.Value
+	}
+
+	return results
+}
+
+func flattenVariablesSecret(input map[string]taskagent.VariableValue) []interface{} {
+	results := make([]interface{}, 0)
+
+	for k, v := range input {
+		if v.IsSecret != nil && *v.IsSecret == true {
+			result := make(map[string]interface{})
+			result["name"] = k
+
+			results = append(results, result)
 		}
-		results = append(results, result)
 	}
 
 	return results
