@@ -54,11 +54,6 @@ func resourceVariableGroup() *schema.Resource {
 							Type:     schema.TypeString,
 							Required: true,
 						},
-						"is_secret": {
-							Type:     schema.TypeBool,
-							Optional: true,
-							Default:  false,
-						},
 					},
 				},
 			},
@@ -155,7 +150,7 @@ func resourceVariableGroupDelete(d *schema.ResourceData, m interface{}) error {
 	}
 
 	clients := m.(*aggregatedClient)
-	projectID, variableGroupID, err := parseIdentifiers(d)
+	projectID, variableGroupID, err := GetComputedId(clients, d.Id())
 	if err != nil {
 		return err
 	}
@@ -191,6 +186,15 @@ func GetComputedId(clients *aggregatedClient, id string) (string, int, error) {
 
 // Convert internal Terraform data structure to an AzDO data structure
 func expandVariableGroup(d *schema.ResourceData, variableGroupId *int) (*taskagent.VariableGroup, string, error) {
+
+	if d.Get("project_id").(string) == "" {
+		return nil, "", fmt.Errorf("Unexpectedly did not find project_id metadata in the resource data")
+	}
+
+	if d.Get("name").(string) == "" {
+		return nil, "", fmt.Errorf("Unexpectedly did not find name metadata in the resource data")
+	}
+
 	projectID := d.Get("project_id").(string)
 	variables := expandVariables(d)
 
@@ -215,7 +219,6 @@ func flattenVariableGroup(d *schema.ResourceData, variableGroup *taskagent.Varia
 	d.Set("allow_access", true)
 	variables := flattenVariables(*variableGroup.Variables)
 	d.Set("variables", variables)
-
 }
 
 func expandVariables(d *schema.ResourceData) map[string]taskagent.VariableValue {
@@ -227,11 +230,9 @@ func expandVariables(d *schema.ResourceData) map[string]taskagent.VariableValue 
 
 		varName := vals["name"].(string)
 		varValue := vals["value"].(string)
-		varIsSecret := vals["is_secret"].(bool)
 
 		output[varName] = taskagent.VariableValue{
-			Value:    &varValue,
-			IsSecret: &varIsSecret,
+			Value: &varValue,
 		}
 	}
 
@@ -244,9 +245,6 @@ func flattenVariables(input map[string]taskagent.VariableValue) []interface{} {
 	for k, v := range input {
 		result := make(map[string]interface{})
 		result["name"] = k
-		if v.IsSecret != nil {
-			result["is_secret"] = *v.IsSecret
-		}
 		if v.Value != nil {
 			result["value"] = *v.Value
 		}
