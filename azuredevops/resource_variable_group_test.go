@@ -81,6 +81,12 @@ func TestAccAzureDevOpsVariableGroup_CreateAndUpdate(t *testing.T) {
 					testAccCheckVariableGroupResourceExists(vargroupNameSecond),
 				),
 			},
+			{
+				// Resource Acceptance Testing https://www.terraform.io/docs/extend/resources/import.html#resource-acceptance-testing-implementation
+				ResourceName:      tfVarGroupNode,
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
 		},
 	})
 }
