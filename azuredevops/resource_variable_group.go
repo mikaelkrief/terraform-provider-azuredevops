@@ -21,7 +21,7 @@ func resourceVariableGroup() *schema.Resource {
 			State: func(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 				// d.Id() here is the last argument passed to the `terraform import RESOURCE_TYPE.RESOURCE_NAME RESOURCE_ID` command
 				// Here we use a function to parse the import ID (like the example above) to simplify our logic
-				projectID, variableGroupID, err := ParseImportedProjectIDAndVariableGroupID(meta.(*aggregatedClient), d.Id())
+				projectID, variableGroupID, err := ParseImportedProjectIDAndVariableGroupID(meta.(*config.AggregatedClient), d.Id())
 				if err != nil {
 					return nil, fmt.Errorf("Error parsing the variable group ID from the Terraform resource data: %v", err)
 				}
@@ -237,7 +237,7 @@ func flattenVariables(variableGroup *taskagent.VariableGroup) interface{} {
 }
 
 // ParseImportedProjectIDAndVariableGroupID : Parse the Id (projectId/variableGroupId) or (projectName/variableGroupId)
-func ParseImportedProjectIDAndVariableGroupID(clients *aggregatedClient, id string) (string, int, error) {
+func ParseImportedProjectIDAndVariableGroupID(clients *config.AggregatedClient, id string) (string, int, error) {
 	project, resourceID, err := tfhelper.ParseImportedID(id)
 	if err != nil {
 		return "", 0, err
