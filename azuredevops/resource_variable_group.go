@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/microsoft/azure-devops-go-api/azuredevops/taskagent"
+	"github.com/microsoft/terraform-provider-azuredevops/azuredevops/utils/config"
 	"github.com/microsoft/terraform-provider-azuredevops/azuredevops/utils/converter"
 	"github.com/microsoft/terraform-provider-azuredevops/azuredevops/utils/tfhelper"
 	"github.com/microsoft/terraform-provider-azuredevops/azuredevops/utils/validate"
@@ -84,7 +85,7 @@ func resourceVariableGroup() *schema.Resource {
 }
 
 func resourceVariableGroupCreate(d *schema.ResourceData, m interface{}) error {
-	clients := m.(*aggregatedClient)
+	clients := m.(*config.AggregatedClient)
 	variableGroupParameters, projectID := expandVariableGroupParameters(d)
 
 	addedVariableGroup, err := createVariableGroup(clients, variableGroupParameters, projectID)
@@ -97,7 +98,7 @@ func resourceVariableGroupCreate(d *schema.ResourceData, m interface{}) error {
 }
 
 func resourceVariableGroupRead(d *schema.ResourceData, m interface{}) error {
-	clients := m.(*aggregatedClient)
+	clients := m.(*config.AggregatedClient)
 
 	projectID, variableGroupID, err := tfhelper.ParseProjectIDAndResourceID(d)
 	if err != nil {
@@ -105,7 +106,7 @@ func resourceVariableGroupRead(d *schema.ResourceData, m interface{}) error {
 	}
 
 	variableGroup, err := clients.TaskAgentClient.GetVariableGroup(
-		clients.ctx,
+		clients.Ctx,
 		taskagent.GetVariableGroupArgs{
 			GroupId: &variableGroupID,
 			Project: &projectID,
@@ -120,7 +121,7 @@ func resourceVariableGroupRead(d *schema.ResourceData, m interface{}) error {
 }
 
 func resourceVariableGroupUpdate(d *schema.ResourceData, m interface{}) error {
-	clients := m.(*aggregatedClient)
+	clients := m.(*config.AggregatedClient)
 	variableGroupParams, projectID := expandVariableGroupParameters(d)
 
 	_, variableGroupID, err := tfhelper.ParseProjectIDAndResourceID(d)
@@ -138,7 +139,7 @@ func resourceVariableGroupUpdate(d *schema.ResourceData, m interface{}) error {
 }
 
 func resourceVariableGroupDelete(d *schema.ResourceData, m interface{}) error {
-	clients := m.(*aggregatedClient)
+	clients := m.(*config.AggregatedClient)
 	projectID, variableGroupID, err := tfhelper.ParseProjectIDAndResourceID(d)
 	if err != nil {
 		return fmt.Errorf("Error parsing the variable group ID from the Terraform resource data: %v", err)
@@ -148,9 +149,9 @@ func resourceVariableGroupDelete(d *schema.ResourceData, m interface{}) error {
 }
 
 // Make the Azure DevOps API call to create the variable group
-func createVariableGroup(clients *aggregatedClient, variableGroupParams *taskagent.VariableGroupParameters, project *string) (*taskagent.VariableGroup, error) {
+func createVariableGroup(clients *config.AggregatedClient, variableGroupParams *taskagent.VariableGroupParameters, project *string) (*taskagent.VariableGroup, error) {
 	createdVariableGroup, err := clients.TaskAgentClient.AddVariableGroup(
-		clients.ctx,
+		clients.Ctx,
 		taskagent.AddVariableGroupArgs{
 			Group:   variableGroupParams,
 			Project: project,
@@ -160,9 +161,9 @@ func createVariableGroup(clients *aggregatedClient, variableGroupParams *taskage
 }
 
 // Make the Azure DevOps API call to update the variable group
-func updateVariableGroup(clients *aggregatedClient, parameters *taskagent.VariableGroupParameters, variableGroupID *int, project *string) (*taskagent.VariableGroup, error) {
+func updateVariableGroup(clients *config.AggregatedClient, parameters *taskagent.VariableGroupParameters, variableGroupID *int, project *string) (*taskagent.VariableGroup, error) {
 	updatedVariableGroup, err := clients.TaskAgentClient.UpdateVariableGroup(
-		clients.ctx,
+		clients.Ctx,
 		taskagent.UpdateVariableGroupArgs{
 			Project: project,
 			GroupId: variableGroupID,
@@ -173,9 +174,9 @@ func updateVariableGroup(clients *aggregatedClient, parameters *taskagent.Variab
 }
 
 // Make the Azure DevOps API call to delete the variable group
-func deleteVariableGroup(clients *aggregatedClient, project *string, variableGroupID *int) error {
+func deleteVariableGroup(clients *config.AggregatedClient, project *string, variableGroupID *int) error {
 	err := clients.TaskAgentClient.DeleteVariableGroup(
-		clients.ctx,
+		clients.Ctx,
 		taskagent.DeleteVariableGroupArgs{
 			Project: project,
 			GroupId: variableGroupID,
