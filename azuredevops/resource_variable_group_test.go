@@ -85,6 +85,7 @@ func TestAccAzureDevOpsVariableGroup_CreateAndUpdate(t *testing.T) {
 			{
 				// Resource Acceptance Testing https://www.terraform.io/docs/extend/resources/import.html#resource-acceptance-testing-implementation
 				ResourceName:      tfVarGroupNode,
+				ImportStateIdFunc: testAccImportStateIDFunc(tfVarGroupNode),
 				ImportState:       true,
 				ImportStateVerify: true,
 			},
@@ -176,4 +177,15 @@ func getVariableGroupFromResource(resource *terraform.ResourceState) (*taskagent
 			Project: &projectID,
 		},
 	)
+}
+
+// Set the Imported ID
+func testAccImportStateIDFunc(resourceName string) resource.ImportStateIdFunc {
+	return func(s *terraform.State) (string, error) {
+		rs, ok := s.RootModule().Resources[resourceName]
+		if !ok {
+			return "", fmt.Errorf("Not found: %s", resourceName)
+		}
+		return fmt.Sprintf("%s/%s", rs.Primary.Attributes["project_id"], rs.Primary.Attributes["id"]), nil
+	}
 }
