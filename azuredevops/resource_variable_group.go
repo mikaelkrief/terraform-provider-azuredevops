@@ -2,13 +2,14 @@ package azuredevops
 
 import (
 	"fmt"
-
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/microsoft/azure-devops-go-api/azuredevops/build"
 	"github.com/microsoft/azure-devops-go-api/azuredevops/taskagent"
 	"github.com/microsoft/terraform-provider-azuredevops/azuredevops/utils/config"
 	"github.com/microsoft/terraform-provider-azuredevops/azuredevops/utils/converter"
 	"github.com/microsoft/terraform-provider-azuredevops/azuredevops/utils/tfhelper"
 	"github.com/microsoft/terraform-provider-azuredevops/azuredevops/utils/validate"
+	"strconv"
 )
 
 func resourceVariableGroup() *schema.Resource {
@@ -35,11 +36,10 @@ func resourceVariableGroup() *schema.Resource {
 				Optional: true,
 				Default:  "",
 			},
-			// Not supported by API: https://github.com/microsoft/terraform-provider-azuredevops/issues/200
-			// "allow_access": {
-			// 	Type:     schema.TypeBool,
-			// 	Required: true,
-			// },
+			"allow_access": {
+				Type:     schema.TypeBool,
+				Required: true,
+			},
 			"variable": {
 				Type: schema.TypeSet,
 				Elem: &schema.Resource{
@@ -81,6 +81,12 @@ func resourceVariableGroupCreate(d *schema.ResourceData, m interface{}) error {
 	}
 
 	flattenVariableGroup(d, addedVariableGroup, projectID)
+
+	// Update Allow Access
+	definitionResourceReferenceArgs := expandDefinitionResourceAuth(d, addedVariableGroup)
+	definitionResourceReference, err := updateDefinitionResourceAuth(clients, definitionResourceReferenceArgs, projectID)
+	flattenAllowAccess(d, definitionResourceReference)
+
 	return nil
 }
 
@@ -104,6 +110,21 @@ func resourceVariableGroupRead(d *schema.ResourceData, m interface{}) error {
 	}
 
 	flattenVariableGroup(d, variableGroup, &projectID)
+
+	//Read the Authorization Resource for get allow access
+	resourceRefType := "variablegroup"
+	varGroupId := strconv.Itoa(variableGroupID)
+
+	projectResources, err := clients.BuildClient.GetProjectResources(
+		clients.Ctx,
+		build.GetProjectResourcesArgs{
+			Project: &projectID,
+			Type:    &resourceRefType,
+			Id:      &varGroupId,
+		},
+	)
+
+	flattenAllowAccess(d, projectResources)
 	return nil
 }
 
@@ -122,6 +143,12 @@ func resourceVariableGroupUpdate(d *schema.ResourceData, m interface{}) error {
 	}
 
 	flattenVariableGroup(d, updatedVariableGroup, projectID)
+
+	// Update Allow Access
+	definitionResourceReferenceArgs := expandDefinitionResourceAuth(d, updatedVariableGroup)
+	definitionResourceReference, err := updateDefinitionResourceAuth(clients, definitionResourceReferenceArgs, projectID)
+	flattenAllowAccess(d, definitionResourceReference)
+
 	return nil
 }
 
@@ -131,7 +158,10 @@ func resourceVariableGroupDelete(d *schema.ResourceData, m interface{}) error {
 	if err != nil {
 		return fmt.Errorf("Error parsing the variable group ID from the Terraform resource data: %v", err)
 	}
-
+	//delete the definition resource (allow access)
+	varGroupID := strconv.Itoa(variableGroupID)
+	deleteDefinitionResourceAuth(clients, &varGroupID, &projectID)
+	//delete the variable group
 	return deleteVariableGroup(clients, &projectID, &variableGroupID)
 }
 
@@ -221,4 +251,73 @@ func flattenVariables(variableGroup *taskagent.VariableGroup) interface{} {
 	}
 
 	return variables
+}
+
+// Convert internal Terraform data structure to an AzDO data structure
+func expandDefinitionResourceAuth(d *schema.ResourceData, createdVariableGroup *taskagent.VariableGroup) []build.DefinitionResourceReference {
+
+	resourceRefType := "variablegroup"
+	variableGroupId := strconv.Itoa(*createdVariableGroup.Id)
+
+	var ArrayDefinitionResourceReference []build.DefinitionResourceReference
+
+	defResourceRef := build.DefinitionResourceReference{
+		Type:       &resourceRefType,
+		Authorized: converter.Bool(d.Get("allow_access").(bool)),
+		Name:       createdVariableGroup.Name,
+		Id:         &variableGroupId,
+	}
+
+	ArrayDefinitionResourceReference = append(ArrayDefinitionResourceReference, defResourceRef)
+
+	return ArrayDefinitionResourceReference
+}
+
+func updateDefinitionResourceAuth(clients *config.AggregatedClient, definitionResource []build.DefinitionResourceReference, project *string) (*[]build.DefinitionResourceReference, error) {
+
+	definitionResourceReference, err := clients.BuildClient.AuthorizeProjectResources(
+		clients.Ctx, build.AuthorizeProjectResourcesArgs{
+			Resources: &definitionResource,
+			Project:   project,
+		})
+
+	return definitionResourceReference, err
+}
+
+func deleteDefinitionResourceAuth(clients *config.AggregatedClient, variableGroupId *string, project *string) (*[]build.DefinitionResourceReference, error) {
+
+	resourceRefType := "variablegroup"
+	auth := false
+	name := ""
+
+	var ArrayDefinitionResourceReference []build.DefinitionResourceReference
+
+	defResourceRef := build.DefinitionResourceReference{
+		Type:       &resourceRefType,
+		Authorized: &auth,
+		Name:       &name,
+		Id:         variableGroupId,
+	}
+
+	ArrayDefinitionResourceReference = append(ArrayDefinitionResourceReference, defResourceRef)
+
+	definitionResourceReference, err := clients.BuildClient.AuthorizeProjectResources(
+		clients.Ctx, build.AuthorizeProjectResourcesArgs{
+			Resources: &ArrayDefinitionResourceReference,
+			Project:   project,
+		})
+
+	return definitionResourceReference, err
+}
+
+// Convert AzDO data structure allow_access to internal Terraform data structure
+func flattenAllowAccess(d *schema.ResourceData, definitionResource *[]build.DefinitionResourceReference) {
+	var allowAccess bool
+	if len(*definitionResource)>0 {
+		allowAccess = *(*definitionResource)[0].Authorized
+	}else{
+		allowAccess = false
+	}
+
+	d.Set("allow_access", allowAccess)
 }

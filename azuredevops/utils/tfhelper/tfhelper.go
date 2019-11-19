@@ -1,6 +1,7 @@
 package tfhelper
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"strconv"
@@ -70,4 +71,13 @@ func ParseProjectIDAndResourceID(d *schema.ResourceData) (string, int, error) {
 	resourceID, err := strconv.Atoi(d.Id())
 
 	return projectID, resourceID, err
+}
+
+//PrettyPrint json
+func PrettyPrint(v interface{}) (err error) {
+	b, err := json.MarshalIndent(v, "", "  ")
+	if err == nil {
+		log.Printf(string(b))
+	}
+	return
 }

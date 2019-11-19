@@ -5,6 +5,7 @@ package azuredevops
 
 import (
 	"fmt"
+	"github.com/microsoft/azure-devops-go-api/azuredevops/build"
 	"strconv"
 	"testing"
 
@@ -35,6 +36,13 @@ var testVariableGroup = taskagent.VariableGroup{
 		},
 	},
 }
+var resourceRefType = "variablegroup"
+var testDefinitionResource = build.DefinitionResourceReference{
+	Type:       &resourceRefType,
+	Authorized: converter.Bool(true),
+	Name:       testVariableGroup.Name,
+	Id:         converter.String("100"),
+}
 
 /**
  * Begin unit tests
@@ -43,6 +51,7 @@ var testVariableGroup = taskagent.VariableGroup{
 func TestAzureDevOpsVariableGroup_ExpandFlatten_Roundtrip(t *testing.T) {
 	resourceData := schema.TestResourceDataRaw(t, resourceVariableGroup().Schema, nil)
 	flattenVariableGroup(resourceData, &testVariableGroup, &testVarGroupProjectID)
+	flattenAllowAccess(resourceData, )
 
 	variableGroupParams, projectID := expandVariableGroupParameters(resourceData)
 
@@ -93,7 +102,7 @@ resource "azuredevops_variable_group" "vg" {
 	project_id  = azuredevops_project.project.id
 	name        = "%s"
 	description = "A sample variable group."
-
+	allow_access = true
 	variable {
 		name      = "key1"
 		value     = "value1"
