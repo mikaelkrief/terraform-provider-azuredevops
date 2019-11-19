@@ -52,7 +52,8 @@ func resourceVariableGroup() *schema.Resource {
 			},
 			"allow_access": {
 				Type:     schema.TypeBool,
-				Required: true,
+				Optional: true,
+				Default:  false,
 			},
 			"variable": {
 				Type: schema.TypeSet,
