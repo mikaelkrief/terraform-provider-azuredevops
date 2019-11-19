@@ -3,11 +3,11 @@ package tfhelper
 import (
 	"encoding/json"
 	"fmt"
-	"log"
-	"strconv"
-
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/microsoft/terraform-provider-azuredevops/azuredevops/utils/secretmemo"
+	"log"
+	"strconv"
+	"strings"
 )
 
 func calcSecretHashKey(secretKey string) string {
@@ -80,4 +80,18 @@ func PrettyPrint(v interface{}) (err error) {
 		log.Printf(string(b))
 	}
 	return
+}
+
+// ParseImportedID parse the imported Id from the terraform import
+func ParseImportedID(id string) (string, int, error) {
+	parts := strings.SplitN(id, "/", 2)
+	if len(parts) != 2 || parts[0] == "" || parts[1] == "" {
+		return "", 0, fmt.Errorf("unexpected format of ID (%s), expected projectid/resourceId", id)
+	}
+	project := parts[0]
+	resourceID, err := strconv.Atoi(parts[1])
+	if err != nil {
+		return "", 0, fmt.Errorf("Error converting getting the resource id: %+v", err)
+	}
+	return project, resourceID, nil
 }

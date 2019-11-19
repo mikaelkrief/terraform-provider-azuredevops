@@ -20,5 +20,6 @@ crash.log
 # unwanted binary file
 **/debug.test
 
-# GoLand Editor
-*.idea
+
+#GoLand Editor configuration
+.idea
