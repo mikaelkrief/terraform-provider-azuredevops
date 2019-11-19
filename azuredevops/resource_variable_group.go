@@ -127,14 +127,14 @@ func resourceVariableGroupRead(d *schema.ResourceData, m interface{}) error {
 
 	//Read the Authorization Resource for get allow access property
 	resourceRefType := "variablegroup"
-	varGroupId := strconv.Itoa(variableGroupID)
+	varGroupID := strconv.Itoa(variableGroupID)
 
 	projectResources, err := clients.BuildClient.GetProjectResources(
 		clients.Ctx,
 		build.GetProjectResourcesArgs{
 			Project: &projectID,
 			Type:    &resourceRefType,
-			Id:      &varGroupId,
+			Id:      &varGroupID,
 		},
 	)
 
@@ -275,7 +275,7 @@ func flattenVariables(variableGroup *taskagent.VariableGroup) interface{} {
 func expandDefinitionResourceAuth(d *schema.ResourceData, createdVariableGroup *taskagent.VariableGroup) []build.DefinitionResourceReference {
 
 	resourceRefType := "variablegroup"
-	variableGroupId := strconv.Itoa(*createdVariableGroup.Id)
+	variableGroupID := strconv.Itoa(*createdVariableGroup.Id)
 
 	var ArrayDefinitionResourceReference []build.DefinitionResourceReference
 
@@ -283,7 +283,7 @@ func expandDefinitionResourceAuth(d *schema.ResourceData, createdVariableGroup *
 		Type:       &resourceRefType,
 		Authorized: converter.Bool(d.Get("allow_access").(bool)),
 		Name:       createdVariableGroup.Name,
-		Id:         &variableGroupId,
+		Id:         &variableGroupID,
 	}
 
 	ArrayDefinitionResourceReference = append(ArrayDefinitionResourceReference, defResourceRef)
@@ -304,7 +304,7 @@ func updateDefinitionResourceAuth(clients *config.AggregatedClient, definitionRe
 }
 
 // Make the Azure DevOps API call to delete the resource Auth Authorized=false
-func deleteDefinitionResourceAuth(clients *config.AggregatedClient, variableGroupId *string, project *string) (*[]build.DefinitionResourceReference, error) {
+func deleteDefinitionResourceAuth(clients *config.AggregatedClient, variableGroupID *string, project *string) (*[]build.DefinitionResourceReference, error) {
 
 	resourceRefType := "variablegroup"
 	auth := false
@@ -316,7 +316,7 @@ func deleteDefinitionResourceAuth(clients *config.AggregatedClient, variableGrou
 		Type:       &resourceRefType,
 		Authorized: &auth,
 		Name:       &name,
-		Id:         variableGroupId,
+		Id:         variableGroupID,
 	}
 
 	ArrayDefinitionResourceReference = append(ArrayDefinitionResourceReference, defResourceRef)

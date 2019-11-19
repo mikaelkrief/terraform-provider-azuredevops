@@ -171,10 +171,9 @@ func testAccCheckVariableGroupResourceExists(expectedName string, expectedAllowA
 		} else {
 			if len(*definitionReference) == 0 {
 				return fmt.Errorf("Definition reference should be not empty for allow access true")
-			} else {
-				if *(*definitionReference)[0].Authorized != expectedAllowAccess {
-					return fmt.Errorf("Variable Group has Allow_access=%t, but expected %t", *(*definitionReference)[0].Authorized, expectedAllowAccess)
-				}
+			}
+			if len(*definitionReference) > 0 && *(*definitionReference)[0].Authorized != expectedAllowAccess {
+				return fmt.Errorf("Variable Group has Allow_access=%t, but expected %t", *(*definitionReference)[0].Authorized, expectedAllowAccess)
 			}
 		}
 		return nil
