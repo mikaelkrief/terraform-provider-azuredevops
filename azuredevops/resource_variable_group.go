@@ -125,7 +125,7 @@ func resourceVariableGroupRead(d *schema.ResourceData, m interface{}) error {
 
 	flattenVariableGroup(d, variableGroup, &projectID)
 
-	//Read the Authorization Resource for get allow access
+	//Read the Authorization Resource for get allow access property
 	resourceRefType := "variablegroup"
 	varGroupId := strconv.Itoa(variableGroupID)
 
@@ -137,6 +137,10 @@ func resourceVariableGroupRead(d *schema.ResourceData, m interface{}) error {
 			Id:      &varGroupId,
 		},
 	)
+
+	if err != nil {
+		return fmt.Errorf("Error looking up project resources given ID (%v) and project ID (%v): %v", variableGroupID, projectID, err)
+	}
 
 	flattenAllowAccess(d, projectResources)
 	return nil
@@ -267,7 +271,7 @@ func flattenVariables(variableGroup *taskagent.VariableGroup) interface{} {
 	return variables
 }
 
-// Convert internal Terraform data structure to an AzDO data structure
+// Convert internal Terraform data structure to an AzDO data structure for Allow Access
 func expandDefinitionResourceAuth(d *schema.ResourceData, createdVariableGroup *taskagent.VariableGroup) []build.DefinitionResourceReference {
 
 	resourceRefType := "variablegroup"
@@ -287,6 +291,7 @@ func expandDefinitionResourceAuth(d *schema.ResourceData, createdVariableGroup *
 	return ArrayDefinitionResourceReference
 }
 
+// Make the Azure DevOps API call to update the Definition resource = Allow Access
 func updateDefinitionResourceAuth(clients *config.AggregatedClient, definitionResource []build.DefinitionResourceReference, project *string) (*[]build.DefinitionResourceReference, error) {
 
 	definitionResourceReference, err := clients.BuildClient.AuthorizeProjectResources(
@@ -298,6 +303,7 @@ func updateDefinitionResourceAuth(clients *config.AggregatedClient, definitionRe
 	return definitionResourceReference, err
 }
 
+// Make the Azure DevOps API call to delete the resource Auth Authorized=false
 func deleteDefinitionResourceAuth(clients *config.AggregatedClient, variableGroupId *string, project *string) (*[]build.DefinitionResourceReference, error) {
 
 	resourceRefType := "variablegroup"
@@ -327,14 +333,12 @@ func deleteDefinitionResourceAuth(clients *config.AggregatedClient, variableGrou
 // Convert AzDO data structure allow_access to internal Terraform data structure
 func flattenAllowAccess(d *schema.ResourceData, definitionResource *[]build.DefinitionResourceReference) {
 	var allowAccess bool
-	if len(*definitionResource)>0 {
+	if len(*definitionResource) > 0 {
 		allowAccess = *(*definitionResource)[0].Authorized
-	}else{
+	} else {
 		allowAccess = false
 	}
-
 	d.Set("allow_access", allowAccess)
-
 }
 
 // ParseImportedProjectIDAndVariableGroupID : Parse the Id (projectId/variableGroupId) or (projectName/variableGroupId)
