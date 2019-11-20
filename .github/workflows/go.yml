@@ -24,5 +24,8 @@ jobs:
             dep ensure
         fi
 
+    - name: Set scripts permissions
+      run : chmod +x ./scripts/*.sh
+
     - name: Bash Fmt
       run: ./scripts/fmt-check-go.sh
