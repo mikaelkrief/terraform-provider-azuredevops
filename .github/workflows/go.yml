@@ -31,4 +31,6 @@ jobs:
       run: ./scripts/fmt-check-go.sh
 
     - name: Run Lint Check
-      run: ./scripts/lint-check-go.sh
+      run: |
+      go get -u golang.org/x/lint/golint
+      ./scripts/lint-check-go.sh
