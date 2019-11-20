@@ -32,5 +32,5 @@ jobs:
 
     - name: Run Lint Check
       run: |
-      go get -u golang.org/x/lint/golint
-      ./scripts/lint-check-go.sh
+        go get -u golang.org/x/lint/golint
+        ./scripts/lint-check-go.sh
