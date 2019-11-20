@@ -24,8 +24,11 @@ jobs:
             dep ensure
         fi
 
-    - name: Set scripts permissions
+    - name: Set Scripts as Executable
       run : chmod +x ./scripts/*.sh
 
-    - name: Bash Fmt
+    - name: Run Format Check
       run: ./scripts/fmt-check-go.sh
+
+    - name: Run Lint Check
+      run: ./scripts/lint-check-go.sh
