@@ -97,9 +97,13 @@ func resourceVariableGroupCreate(d *schema.ResourceData, m interface{}) error {
 
 	flattenVariableGroup(d, addedVariableGroup, projectID)
 
-	// Update Allow Access
+	// Update Allow Access with definition Reference
 	definitionResourceReferenceArgs := expandDefinitionResourceAuth(d, addedVariableGroup)
 	definitionResourceReference, err := updateDefinitionResourceAuth(clients, definitionResourceReferenceArgs, projectID)
+	if err != nil {
+		return fmt.Errorf("Error creating definitionResourceReference Azure DevOps object: %+v", err)
+	}
+
 	flattenAllowAccess(d, definitionResourceReference)
 
 	return nil
@@ -166,6 +170,10 @@ func resourceVariableGroupUpdate(d *schema.ResourceData, m interface{}) error {
 	// Update Allow Access
 	definitionResourceReferenceArgs := expandDefinitionResourceAuth(d, updatedVariableGroup)
 	definitionResourceReference, err := updateDefinitionResourceAuth(clients, definitionResourceReferenceArgs, projectID)
+	if err != nil {
+		return fmt.Errorf("Error updating definitionResourceReference Azure DevOps object: %+v", err)
+	}
+
 	flattenAllowAccess(d, definitionResourceReference)
 
 	return nil
@@ -179,7 +187,10 @@ func resourceVariableGroupDelete(d *schema.ResourceData, m interface{}) error {
 	}
 	//delete the definition resource (allow access)
 	varGroupID := strconv.Itoa(variableGroupID)
-	deleteDefinitionResourceAuth(clients, &varGroupID, &projectID)
+	_, err = deleteDefinitionResourceAuth(clients, &varGroupID, &projectID)
+	if err != nil {
+		return fmt.Errorf("Error deleting the allow access definitionResource for variable group ID (%v) and project ID (%v): %v", variableGroupID, projectID, err)
+	}
 	//delete the variable group
 	return deleteVariableGroup(clients, &projectID, &variableGroupID)
 }
@@ -192,7 +203,6 @@ func createVariableGroup(clients *config.AggregatedClient, variableGroupParams *
 			Group:   variableGroupParams,
 			Project: project,
 		})
-
 	return createdVariableGroup, err
 }
 
