@@ -12,14 +12,13 @@ Use Terraform logging to debug your code. (TBD: write this section).
 % export TF_LOG=DEBUG
 ~~~
 
-For display traces information durant the Terraform execution like the passed and reponse objects from the Azure DevOps API, add logs with the ```tfhelpers.PrettyPrint``` method like as the example below:
+For display traces information durant the Terraform execution like the passed and response objects from the Azure DevOps API, add logs with the `tfhelpers.PrettyPrint` method like as the example below:
 ~~~
 tfhelper.PrettyPrint(createdVariableGroup)
 ~~~
 And during the Terraform execution we can see the logs:
 
 ![logs](images/prettyprintlogs.png)
-
 
 ## Option 3 - Debug acceptance tests from VS Code
 
