@@ -1,4 +1,4 @@
-name: Go
+name: Build Terraform provider AzDo
 on: [push]
 jobs:
 
