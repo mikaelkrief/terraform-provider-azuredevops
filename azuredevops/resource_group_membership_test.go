@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/golang/mock/gomock"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/terraform"
@@ -14,7 +13,6 @@ import (
 	"github.com/microsoft/terraform-provider-azuredevops/azuredevops/utils/config"
 	"github.com/microsoft/terraform-provider-azuredevops/azuredevops/utils/converter"
 	"github.com/stretchr/testify/require"
-	"os"
 	"strings"
 	"testing"
 	"time"
@@ -163,7 +161,7 @@ func TestGroupMembership_Read_DoesNotSwallowErrors(t *testing.T) {
 //
 // Note: This will be uncommented in https://github.com/microsoft/terraform-provider-azuredevops/issues/174
 //
-func TestAccGroupMembership_CreateAndRemove(t *testing.T) {
+/*func TestAccGroupMembership_CreateAndRemove(t *testing.T) {
 	projectName := testAccResourcePrefix + acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
 	userPrincipalName := os.Getenv("AZDO_TEST_AAD_USER_EMAIL")
 	groupName := "Build Administrators"
@@ -198,7 +196,7 @@ func TestAccGroupMembership_CreateAndRemove(t *testing.T) {
 			},
 		},
 	})
-}
+}*/
 
 // Verifies that the group membership in AzDO matches the group membership specified by the state
 func testAccVerifyGroupMembershipMatchesState() resource.TestCheckFunc {
