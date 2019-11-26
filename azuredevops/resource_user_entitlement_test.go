@@ -256,11 +256,11 @@ func testAccCheckUserEntitlementResourceExists(expectedPrincipalName string) res
 }
 
 // verifies that all projects referenced in the state are destroyed. This will be invoked
-// *after* terrafform destroys the resource but *before* the state is wiped clean.
+// *after* terraform destroys the resource but *before* the state is wiped clean.
 func testAccUserEntitlementCheckDestroy(s *terraform.State) error {
 	clients := testAccProvider.Meta().(*config.AggregatedClient)
 
-	// verify that every project referenced in the state does not exist in AzDO
+	// verify that every users referenced in the state does not exist in AzDO
 	for _, resource := range s.RootModule().Resources {
 		if resource.Type != "azuredevops_user_entitlement" {
 			continue

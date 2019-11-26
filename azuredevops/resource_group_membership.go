@@ -26,13 +26,13 @@ func resourceGroupMembership() *schema.Resource {
 				ValidateFunc: validation.NoZeroValues,
 			},
 			"members": {
-				Type: schema.TypeSet,
+				Type:     schema.TypeSet,
+				MinItems: 1,
+				Required: true,
 				Elem: &schema.Schema{
 					Type:         schema.TypeString,
 					ValidateFunc: validation.NoZeroValues,
 				},
-				MinItems: 1,
-				Required: true,
 			},
 		},
 	}
@@ -64,16 +64,19 @@ func resourceGroupMembershipUpdate(d *schema.ResourceData, m interface{}) error 
 }
 
 func applyMembershipUpdate(clients *config.AggregatedClient, toAdd *[]graph.GraphMembership, toRemove *[]graph.GraphMembership) error {
-	err := removeMemberships(clients, toRemove)
-	if err != nil {
-		return fmt.Errorf("Error removing group memberships during update: %+v", err)
+	if len(*toRemove) > 0 {
+		err := removeMemberships(clients, toRemove)
+		if err != nil {
+			return fmt.Errorf("Error removing group memberships during update: %+v", err)
+		}
 	}
 
-	err = addMemberships(clients, toAdd)
-	if err != nil {
-		return fmt.Errorf("Error adding group memberships during update: %+v", err)
+	if len(*toAdd) > 0 {
+		err := addMemberships(clients, toAdd)
+		if err != nil {
+			return fmt.Errorf("Error adding group memberships during update: %+v", err)
+		}
 	}
-
 	return nil
 }
 
@@ -106,21 +109,23 @@ func computeMembershipDiff(group string, oldMembers map[string]bool, newMembers 
 //	https://stackoverflow.com/questions/34018908/golang-why-dont-we-have-a-set-datastructure
 func getOldAndNewMemberSetsFromResourceData(d *schema.ResourceData) (map[string]bool, map[string]bool) {
 	oldData, newData := d.GetChange("members")
-	oldMembers := toStringSet(oldData.([]interface{}))
-	newMembers := toStringSet(newData.([]interface{}))
+
+	oldMembers := toStringSet(oldData.(*schema.Set).List())
+	newMembers := toStringSet(newData.(*schema.Set).List())
+
 	return oldMembers, newMembers
 }
 
 // Convert a list of elements into a set of strings
-func toStringSet(items ...interface{}) map[string]bool {
+func toStringSet(items []interface{}) map[string]bool {
 	theSet := map[string]bool{}
-	for _, item := range items {
-		theSet[item.(string)] = true
+	for _, v := range items {
+		theSet[v.(string)] = true
 	}
-
 	return theSet
 }
 
+// Delete group membership
 func resourceGroupMembershipDelete(d *schema.ResourceData, m interface{}) error {
 	clients := m.(*config.AggregatedClient)
 	memberships := expandGroupMemberships(d)
@@ -160,7 +165,7 @@ func removeMemberships(clients *config.AggregatedClient, memberships *[]graph.Gr
 		})
 
 		if err != nil {
-			return fmt.Errorf("Error removing member from group: %+v", err)
+			return fmt.Errorf("Error removing user from group: %+v", err)
 		}
 	}
 
