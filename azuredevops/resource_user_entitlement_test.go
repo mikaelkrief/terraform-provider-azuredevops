@@ -273,8 +273,10 @@ func testAccUserEntitlementCheckDestroy(s *terraform.State) error {
 
 		userEntitlement, err := readUserEntitlement(clients, &id)
 		if err != nil {
-			if string(*userEntitlement.AccessLevel.Status) != "none" {
-				return fmt.Errorf("Status should be none : %s", string(*userEntitlement.AccessLevel.Status))
+			if userEntitlement != nil && userEntitlement.AccessLevel != nil && string(*userEntitlement.AccessLevel.Status) != "none" {
+				return fmt.Errorf("Status should be none : %s with readUserEntitlement error %v", string(*userEntitlement.AccessLevel.Status), err)
+			} else {
+				return fmt.Errorf("UserEntitlement with ID=%s cannot be found!. Error=%v", id, err)
 			}
 		}
 	}
