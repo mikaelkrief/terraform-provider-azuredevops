@@ -5,6 +5,7 @@ import (
 	"github.com/microsoft/terraform-provider-azuredevops/azuredevops/utils/config"
 	"github.com/microsoft/terraform-provider-azuredevops/azuredevops/utils/converter"
 	"math/rand"
+	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
@@ -49,10 +50,17 @@ func resourceGroupMembershipCreate(d *schema.ResourceData, m interface{}) error 
 
 	// The ID for this resource is meaningless so we can just assign a random ID
 	d.SetId(fmt.Sprintf("%d", rand.Int()))
-	return nil
+
+	// sleep 10 sec for wait the creation of the groupMembership
+	time.Sleep(10 * time.Second)
+
+	return resourceGroupMembershipRead(d, m)
 }
 
 func resourceGroupMembershipUpdate(d *schema.ResourceData, m interface{}) error {
+	// Enable partial state mode
+	d.Partial(true)
+
 	if !d.HasChange("members") {
 		return nil
 	}
@@ -60,7 +68,17 @@ func resourceGroupMembershipUpdate(d *schema.ResourceData, m interface{}) error 
 	group := d.Get("group").(string)
 	oldMembers, newMembers := getOldAndNewMemberSetsFromResourceData(d)
 	toAdd, toRemove := computeMembershipDiff(group, oldMembers, newMembers)
-	return applyMembershipUpdate(m.(*config.AggregatedClient), toAdd, toRemove)
+
+	applyMembershipUpdate(m.(*config.AggregatedClient), toAdd, toRemove)
+
+	// We succeeded, disable partial mode. This causes Terraform to save
+	// all fields again.
+	d.Partial(false)
+
+	// sleep 10 sec for wait the update of the groupMembership
+	time.Sleep(10 * time.Second)
+
+	return resourceGroupMembershipRead(d, m)
 }
 
 func applyMembershipUpdate(clients *config.AggregatedClient, toAdd *[]graph.GraphMembership, toRemove *[]graph.GraphMembership) error {

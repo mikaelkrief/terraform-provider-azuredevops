@@ -76,6 +76,9 @@ func TestAzureDevOpsUserEntitlement_CreateUserEntitlement_WithPrincipalName(t *t
 			UserEntitlement: mockUserEntitlement,
 		}, nil).
 		Times(1)
+	client.EXPECT().GetUserEntitlement(gomock.Any(), memberentitlementmanagement.GetUserEntitlementArgs{
+		UserId: mockUserEntitlement.Id,
+	}).Return(mockUserEntitlement, nil)
 
 	err := resourceUserEntitlementCreate(resourceData, clients)
 	assert.Nil(t, err, "err should not be nil")
