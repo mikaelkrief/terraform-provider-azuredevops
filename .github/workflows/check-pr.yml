@@ -1,5 +1,5 @@
 name: Build Terraform provider AzDo
-on: [push]
+on: [pull_request]
 jobs:
 
   build:
