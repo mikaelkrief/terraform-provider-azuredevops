@@ -1,3 +1,5 @@
+// +build all resource_user_entitlement
+
 package azuredevops
 
 import (
@@ -18,6 +20,7 @@ import (
 	"github.com/microsoft/azure-devops-go-api/azuredevops/memberentitlementmanagement"
 	"github.com/microsoft/terraform-provider-azuredevops/azdosdkmocks"
 	"github.com/microsoft/terraform-provider-azuredevops/azuredevops/utils/config"
+	"github.com/microsoft/terraform-provider-azuredevops/azuredevops/utils/testhelper"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -76,6 +79,9 @@ func TestAzureDevOpsUserEntitlement_CreateUserEntitlement_WithPrincipalName(t *t
 			UserEntitlement: mockUserEntitlement,
 		}, nil).
 		Times(1)
+	client.EXPECT().GetUserEntitlement(gomock.Any(), memberentitlementmanagement.GetUserEntitlementArgs{
+		UserId: mockUserEntitlement.Id,
+	}).Return(mockUserEntitlement, nil)
 
 	err := resourceUserEntitlementCreate(resourceData, clients)
 	assert.Nil(t, err, "err should not be nil")
@@ -201,12 +207,12 @@ func TestAccAzureDevOpsUserEntitlement_Create(t *testing.T) {
 	tfNode := "azuredevops_user_entitlement.user"
 	principalName := os.Getenv("AZDO_TEST_AAD_USER_EMAIL")
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
+		PreCheck:     func() { testhelper.TestAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccUserEntitlementCheckDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccUserEntitlementResource(principalName),
+				Config: testhelper.TestAccUserEntitlementResource(principalName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttrSet(tfNode, "descriptor"),
 					testAccCheckUserEntitlementResourceExists(principalName),
@@ -214,15 +220,6 @@ func TestAccAzureDevOpsUserEntitlement_Create(t *testing.T) {
 			},
 		},
 	})
-}
-
-// HCL describing an AzDO project
-func testAccUserEntitlementResource(principalName string) string {
-	return fmt.Sprintf(`
-resource "azuredevops_user_entitlement" "user" {
-	principal_name     = "%s"
-	account_license_type = "express"
-}`, principalName)
 }
 
 // Given the principalName of an AzDO userEntitlement, this will return a function that will check whether
@@ -256,11 +253,11 @@ func testAccCheckUserEntitlementResourceExists(expectedPrincipalName string) res
 }
 
 // verifies that all projects referenced in the state are destroyed. This will be invoked
-// *after* terrafform destroys the resource but *before* the state is wiped clean.
+// *after* terraform destroys the resource but *before* the state is wiped clean.
 func testAccUserEntitlementCheckDestroy(s *terraform.State) error {
 	clients := testAccProvider.Meta().(*config.AggregatedClient)
 
-	// verify that every project referenced in the state does not exist in AzDO
+	// verify that every users referenced in the state does not exist in AzDO
 	for _, resource := range s.RootModule().Resources {
 		if resource.Type != "azuredevops_user_entitlement" {
 			continue
@@ -273,12 +270,8 @@ func testAccUserEntitlementCheckDestroy(s *terraform.State) error {
 
 		userEntitlement, err := readUserEntitlement(clients, &id)
 		if err != nil {
-			if userEntitlement != nil && userEntitlement.AccessLevel != nil {
-				if string(*userEntitlement.AccessLevel.Status) != "none" {
-					return fmt.Errorf("Status should be none : %s", string(*userEntitlement.AccessLevel.Status))
-				}
-			} else {
-				return fmt.Errorf("userEntitlement is null")
+			if userEntitlement != nil && userEntitlement.AccessLevel != nil && string(*userEntitlement.AccessLevel.Status) != "none" {
+				return fmt.Errorf("Status should be none : %s with readUserEntitlement error %v", string(*userEntitlement.AccessLevel.Status), err)
 			}
 		}
 	}
@@ -304,4 +297,8 @@ func (m *matchAddUserEntitlementArgs) Matches(x interface{}) bool {
 
 func (m *matchAddUserEntitlementArgs) String() string {
 	return fmt.Sprintf("origin_id: %s, principal_name: %s", *m.t.UserEntitlement.User.OriginId, *m.t.UserEntitlement.User.PrincipalName)
+}
+
+func init() {
+	InitProvider()
 }
