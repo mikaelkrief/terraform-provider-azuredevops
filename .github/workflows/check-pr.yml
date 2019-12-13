@@ -1,4 +1,4 @@
-name: Build Terraform provider AzDo
+name: Build and Test Terraform provider AzDo
 on: [pull_request]
 jobs:
 
