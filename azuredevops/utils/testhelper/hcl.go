@@ -78,6 +78,19 @@ resource "azuredevops_serviceendpoint_dockerhub" "serviceendpoint" {
 	return fmt.Sprintf("%s\n%s", projectResource, serviceEndpointResource)
 }
 
+// TestAccServiceEndpointAzureRMResource HCL describing an AzDO service endpoint
+func TestAccServiceEndpointAzureRMResource(projectName string, serviceEndpointName string) string {
+	serviceEndpointResource := fmt.Sprintf(`
+resource "azuredevops_serviceendpoint_azurerm" "serviceendpointazure" {
+	project_id             = azuredevops_project.project.id
+	service_endpoint_name  = "%s"
+	authenticationType  =""
+}`, serviceEndpointName)
+
+	projectResource := TestAccProjectResource(projectName)
+	return fmt.Sprintf("%s\n%s", projectResource, serviceEndpointResource)
+}
+
 // TestAccVariableGroupResource HCL describing an AzDO variable group
 func TestAccVariableGroupResource(projectName string, variableGroupName string, allowAccess bool) string {
 	variableGroupResource := fmt.Sprintf(`

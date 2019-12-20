@@ -4,9 +4,11 @@ import (
 	"fmt"
 	"github.com/google/uuid"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/microsoft/azure-devops-go-api/azuredevops/core"
 	"github.com/microsoft/azure-devops-go-api/azuredevops/serviceendpoint"
 	"github.com/microsoft/terraform-provider-azuredevops/azuredevops/utils/config"
 	"github.com/microsoft/terraform-provider-azuredevops/azuredevops/utils/converter"
+	"github.com/microsoft/terraform-provider-azuredevops/azuredevops/utils/tfhelper"
 )
 
 type flatFunc func(d *schema.ResourceData, serviceEndpoint *serviceendpoint.ServiceEndpoint, projectID *string)
@@ -20,6 +22,21 @@ func GenBaseServiceEndpointResource(f flatFunc, e expandFunc) *schema.Resource {
 		Read:   genServiceEndpointReadFunc(f),
 		Update: genServiceEndpointUpdateFunc(f, e),
 		Delete: genServiceEndpointDeleteFunc(e),
+		Importer: &schema.ResourceImporter{
+			State: func(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+				// d.Id() here is the last argument passed to the `terraform import RESOURCE_TYPE.RESOURCE_NAME RESOURCE_ID` command
+				// Here we use a function to parse the import ID (like the example above) to simplify our logic
+				projectID, ServiceID, err := ParseImportedProjectIDAndEndPointName(meta.(*config.AggregatedClient), d.Id())
+				if err != nil {
+					return nil, fmt.Errorf("Error parsing the service end point from the Terraform resource data: %v", err)
+				}
+				d.Set("project_id", projectID)
+				d.SetId(fmt.Sprintf("%s", ServiceID))
+				//tfhelper.HelpFlattenSecret(d,)
+
+				return []*schema.ResourceData{d}, nil
+			},
+		},
 		Schema: genBaseSchema(),
 	}
 }
@@ -61,6 +78,31 @@ func DoBaseFlattening(d *schema.ResourceData, serviceEndpoint *serviceendpoint.S
 	d.SetId(serviceEndpoint.Id.String())
 	d.Set("service_endpoint_name", *serviceEndpoint.Name)
 	d.Set("project_id", projectID)
+}
+
+// MakeProtectedSchema create protected schema
+func MakeProtectedSchema(r *schema.Resource, keyName, envVarName, description string) {
+	r.Schema[keyName] = &schema.Schema{
+		Type:             schema.TypeString,
+		Required:         true,
+		DefaultFunc:      schema.EnvDefaultFunc(envVarName, nil),
+		Description:      description,
+		Sensitive:        true,
+		DiffSuppressFunc: tfhelper.DiffFuncSupressSecretChanged,
+	}
+
+	secretHashKey, secretHashSchema := tfhelper.GenerateSecreteMemoSchema(keyName)
+	r.Schema[secretHashKey] = secretHashSchema
+}
+
+// MakeUnprotectedSchema create unprotected schema
+func MakeUnprotectedSchema(r *schema.Resource, keyName, envVarName, description string) {
+	r.Schema[keyName] = &schema.Schema{
+		Type:        schema.TypeString,
+		Required:    true,
+		DefaultFunc: schema.EnvDefaultFunc(envVarName, nil),
+		Description: description,
+	}
 }
 
 // Make the Azure DevOps API call to create the endpoint
@@ -141,6 +183,29 @@ func genServiceEndpointReadFunc(flatFunc flatFunc) func(d *schema.ResourceData, 
 	}
 }
 
+func genServiceEndpointByName(clients *config.AggregatedClient, projectID string, endPointName string) (serviceendpoint.ServiceEndpoint, error) {
+	var serviceendpointobj serviceendpoint.ServiceEndpoint
+
+	serviceendlist, err := clients.ServiceEndpointClient.GetServiceEndpointsByNames(
+		clients.Ctx,
+		serviceendpoint.GetServiceEndpointsByNamesArgs{
+			EndpointNames:&[]string{endPointName},
+			Project:    &projectID,
+		},
+	)
+
+	if err != nil {
+		return serviceendpointobj,fmt.Errorf("Error looking up service endpoint given name (%v) and project ID (%v): %v", endPointName, projectID, err)
+	}
+
+	if len(*serviceendlist) > 0 {
+		serviceendpointobj = (*serviceendlist)[0]
+		return serviceendpointobj, nil
+	}
+
+	return serviceendpointobj, nil
+}
+
 func genServiceEndpointUpdateFunc(flatFunc flatFunc, expandFunc expandFunc) schema.UpdateFunc {
 	return func(d *schema.ResourceData, m interface{}) error {
 		clients := m.(*config.AggregatedClient)
@@ -163,4 +228,30 @@ func genServiceEndpointDeleteFunc(expandFunc expandFunc) schema.DeleteFunc {
 
 		return deleteServiceEndpoint(clients, projectID, serviceEndpoint.Id)
 	}
+}
+
+
+// ParseImportedProjectIDAndEndPointName : Parse the Id (projectId/endpointName) or (projectName/endpointName)
+func ParseImportedProjectIDAndEndPointName(clients *config.AggregatedClient, name string) (string, string, error) {
+	project, resourceName, err := tfhelper.ParseImportedName(name)
+	if err != nil {
+		return "", "", err
+	}
+
+	// Get the project ID
+	currentProject, err := clients.CoreClient.GetProject(clients.Ctx, core.GetProjectArgs{
+		ProjectId:           &project,
+		IncludeCapabilities: converter.Bool(true),
+		IncludeHistory:      converter.Bool(false),
+	})
+	if err != nil {
+		return "", "", err
+	}
+
+	serviceendpoint, err := genServiceEndpointByName(clients,currentProject.Id.String(), resourceName)
+	if err !=nil {
+
+	}
+
+	return currentProject.Id.String(), serviceendpoint.Id.String(), nil
 }

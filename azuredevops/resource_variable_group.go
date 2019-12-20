@@ -360,7 +360,7 @@ func ParseImportedProjectIDAndVariableGroupID(clients *config.AggregatedClient, 
 	}
 
 	// Get the project ID
-	currentProject, err := projectRead(clients, project, project)
+	currentProject, err := ProjectRead(clients, project, project)
 	if err != nil {
 		return "", 0, err
 	}

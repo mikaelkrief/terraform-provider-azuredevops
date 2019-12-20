@@ -2,71 +2,58 @@ package azuredevops
 
 import (
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-
 	"github.com/microsoft/azure-devops-go-api/azuredevops/serviceendpoint"
-
 	crud "github.com/microsoft/terraform-provider-azuredevops/azuredevops/crud/serviceendpoint"
-
 	"github.com/microsoft/terraform-provider-azuredevops/azuredevops/utils/converter"
 	"github.com/microsoft/terraform-provider-azuredevops/azuredevops/utils/tfhelper"
 )
 
-func makeProtectedSchema(r *schema.Resource, keyName, envVarName, description string) {
-	r.Schema[keyName] = &schema.Schema{
-		Type:             schema.TypeString,
-		Required:         true,
-		DefaultFunc:      schema.EnvDefaultFunc(envVarName, nil),
-		Description:      description,
-		Sensitive:        true,
-		DiffSuppressFunc: tfhelper.DiffFuncSupressSecretChanged,
-	}
 
-	secretHashKey, secretHashSchema := tfhelper.GenerateSecreteMemoSchema(keyName)
-	r.Schema[secretHashKey] = secretHashSchema
-}
 
-func makeUnprotectedSchema(r *schema.Resource, keyName, envVarName, description string) {
-	r.Schema[keyName] = &schema.Schema{
-		Type:        schema.TypeString,
-		Required:    true,
-		DefaultFunc: schema.EnvDefaultFunc(envVarName, nil),
-		Description: description,
-	}
-}
-
-func resourceServiceEndpointDockerHub() *schema.Resource {
-	r := crud.GenBaseServiceEndpointResource(flattenServiceEndpointDockerHub, expandServiceEndpointDockerHub)
-	makeUnprotectedSchema(r, "docker_username", "AZDO_DOCKERHUB_SERVICE_CONNECTION_USERNAME", "The DockerHub username which should be used.")
-	makeUnprotectedSchema(r, "docker_email", "AZDO_DOCKERHUB_SERVICE_CONNECTION_EMAIL", "The DockerHub email address which should be used.")
-	makeProtectedSchema(r, "docker_password", "AZDO_DOCKERHUB_SERVICE_CONNECTION_PASSWORD", "The DockerHub password which should be used.")
+func resourceServiceEndpointAzureRM() *schema.Resource {
+	r := crud.GenBaseServiceEndpointResource(flattenServiceEndpointAzureRM, expandServiceEndpointAzureRM)
+	crud.MakeUnprotectedSchema(r, "azurerm_spn_clientid", "ARM_CLIENT_ID", "The service principal id which should be used.")
+	crud.MakeProtectedSchema(r, "azurerm_spn_clientsecret", "ARM_CLIENT_SECRET", "The service principal secret which should be used.")
+	crud.MakeUnprotectedSchema(r, "azurerm_spn_tenantid","ARM_TENANT_ID", "The service principal tenant id which should be used.")
+	crud.MakeUnprotectedSchema(r, "azurerm_subscription_id","ARM_SUBSCRIPTION_ID", "The Azure subscription Id which should be used.")
+	crud.MakeUnprotectedSchema(r, "azurerm_subscription_name","ARM_SUBSCRIPTION_NAME", "The Azure subscription name which should be used.")
+	crud.MakeUnprotectedSchema(r, "azurerm_scope","ARM_SCOPE", "The Azure scope which should be used by the spn.")
 	return r
 }
 
 // Convert internal Terraform data structure to an AzDO data structure
-func expandServiceEndpointDockerHub(d *schema.ResourceData) (*serviceendpoint.ServiceEndpoint, *string) {
+func expandServiceEndpointAzureRM(d *schema.ResourceData) (*serviceendpoint.ServiceEndpoint, *string) {
 	serviceEndpoint, projectID := crud.DoBaseExpansion(d)
 	serviceEndpoint.Authorization = &serviceendpoint.EndpointAuthorization{
 		Parameters: &map[string]string{
-			"username": d.Get("docker_username").(string),
-			"password": d.Get("docker_password").(string),
-			"email":    d.Get("docker_email").(string),
-			"registry": "https://index.docker.io/v1/",
+			"authenticationType": "spnKey",
+			"scope": d.Get("azurerm_scope").(string),
+			"serviceprincipalid": d.Get("azurerm_spn_clientid").(string),
+			"serviceprincipalkey":    d.Get("azurerm_spn_clientsecret").(string),
+			"tenantid":  d.Get("azurerm_spn_tenantid").(string),
 		},
-		Scheme: converter.String("UsernamePassword"),
+		Scheme: converter.String("ServicePrincipal"),
 	}
 	serviceEndpoint.Data = &map[string]string{
-		"registrytype": "DockerHub",
+		"creationMode": "Manual",
+		"environment": "AzureCloud",
+		"scopeLevel": "Subscription",
+		"SubscriptionId":  d.Get("azurerm_subscription_id").(string),
+		"SubscriptionName":  d.Get("azurerm_subscription_name").(string),
 	}
-	serviceEndpoint.Type = converter.String("dockerregistry")
-	serviceEndpoint.Url = converter.String("https://hub.docker.com/")
+	serviceEndpoint.Type = converter.String("azurerm")
+	serviceEndpoint.Url = converter.String("https://management.azure.com/")
 	return serviceEndpoint, projectID
 }
 
 // Convert AzDO data structure to internal Terraform data structure
-func flattenServiceEndpointDockerHub(d *schema.ResourceData, serviceEndpoint *serviceendpoint.ServiceEndpoint, projectID *string) {
+func flattenServiceEndpointAzureRM(d *schema.ResourceData, serviceEndpoint *serviceendpoint.ServiceEndpoint, projectID *string) {
 	crud.DoBaseFlattening(d, serviceEndpoint, projectID)
-	d.Set("docker_email", (*serviceEndpoint.Authorization.Parameters)["email"])
-	d.Set("docker_username", (*serviceEndpoint.Authorization.Parameters)["username"])
-	tfhelper.HelpFlattenSecret(d, "docker_password")
-	d.Set("docker_password", (*serviceEndpoint.Authorization.Parameters)["password"])
+	d.Set("azurerm_scope", (*serviceEndpoint.Authorization.Parameters)["scope"])
+	d.Set("azurerm_spn_clientid", (*serviceEndpoint.Authorization.Parameters)["serviceprincipalid"])
+	tfhelper.HelpFlattenSecret(d, "azurerm_spn_clientsecret")
+	d.Set("azurerm_spn_tenantid", (*serviceEndpoint.Authorization.Parameters)["tenantid"])
+	d.Set("azurerm_spn_clientsecret", (*serviceEndpoint.Authorization.Parameters)["serviceprincipalkey"])
+	d.Set("azurerm_subscription_id", (*serviceEndpoint.Data)["SubscriptionId"])
+	d.Set("azurerm_subscription_name", (*serviceEndpoint.Data)["SubscriptionName"])
 }

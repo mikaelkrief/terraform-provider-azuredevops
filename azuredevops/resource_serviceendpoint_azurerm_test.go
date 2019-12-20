@@ -1,4 +1,4 @@
-// +build all resource_serviceendpoint_dockerhub
+// +build all resource_serviceendpoint_azurerm
 
 package azuredevops
 
@@ -24,28 +24,33 @@ import (
 	"github.com/microsoft/azure-devops-go-api/azuredevops/serviceendpoint"
 )
 
-var dhTestServiceEndpointID = uuid.New()
-var dhRandomServiceEndpointProjectID = uuid.New().String()
-var dhTestServiceEndpointProjectID = &dhRandomServiceEndpointProjectID
+var dhTestServiceEndpointAzureRMID = uuid.New()
+var dhRandomServiceEndpointAzureRMProjectID = uuid.New().String()
+var dhTestServiceEndpointAzureRMProjectID = &dhRandomServiceEndpointAzureRMProjectID
 
-var dhTestServiceEndpoint = serviceendpoint.ServiceEndpoint{ //todo change
+var dhTestServiceEndpointAzureRM = serviceendpoint.ServiceEndpoint{ //todo change
 	Authorization: &serviceendpoint.EndpointAuthorization{
 		Parameters: &map[string]string{
-			"username": "DH_TEST_username",
-			"password": "DH_TEST_password",
-			"email":    "DH_TEST_email",
-			"registry": "https://index.docker.io/v1/",
+			"authenticationType":  "spnKey",
+			"scope":               "/subscriptions/fa8e7d5e-84f9-4477-904f-852054f85586",
+			"serviceprincipalid":  "e31eaaac-47da-4156-b433-9b0538c94b7e",
+			"serviceprincipalkey": "d96d8515-20b2-4413-8879-27c5d040cbc2",
+			"tenantid":            "aba07645-051c-44b4-b806-c34d33f3dcd1",
 		},
-		Scheme: converter.String("UsernamePassword"),
+		Scheme: converter.String("ServicePrincipal"),
 	},
 	Data: &map[string]string{
-		"registrytype": "DockerHub",
+		"creationMode":     "Manual",
+		"environment":      "AzureCloud",
+		"scopeLevel":       "Subscription",
+		"SubscriptionId":   "42125daf-72fd-417c-9ea7-080690625ad3",
+		"SubscriptionName": "SUBSCRIPTION_TEST",
 	},
-	Id:    &dhTestServiceEndpointID,
-	Name:  converter.String("UNIT_TEST_CONN_NAME"),
+	Id:    &dhTestServiceEndpointAzureRMID,
+	Name:  converter.String("_AZURERM_UNIT_TEST_CONN_NAME"),
 	Owner: converter.String("library"), // Supported values are "library", "agentcloud"
-	Type:  converter.String("dockerregistry"),
-	Url:   converter.String("https://hub.docker.com/"),
+	Type:  converter.String("azurerm"),
+	Url:   converter.String("https://management.azure.com/"),
 }
 
 /**
@@ -53,29 +58,29 @@ var dhTestServiceEndpoint = serviceendpoint.ServiceEndpoint{ //todo change
  */
 
 // verifies that the flatten/expand round trip yields the same service endpoint
-func TestAzureDevOpsServiceEndpointDockerHub_ExpandFlatten_Roundtrip(t *testing.T) {
-	resourceData := schema.TestResourceDataRaw(t, resourceServiceEndpointDockerHub().Schema, nil)
-	flattenServiceEndpointDockerHub(resourceData, &dhTestServiceEndpoint, dhTestServiceEndpointProjectID)
+func TestAzureDevOpsServiceEndpointAzureRM_ExpandFlatten_Roundtrip(t *testing.T) {
+	resourceData := schema.TestResourceDataRaw(t, resourceServiceEndpointAzureRM().Schema, nil)
+	flattenServiceEndpointAzureRM(resourceData, &dhTestServiceEndpointAzureRM, dhTestServiceEndpointAzureRMProjectID)
 
-	serviceEndpointAfterRoundTrip, projectID := expandServiceEndpointDockerHub(resourceData)
+	serviceEndpointAfterRoundTrip, projectID := expandServiceEndpointAzureRM(resourceData)
 
-	require.Equal(t, dhTestServiceEndpoint, *serviceEndpointAfterRoundTrip)
-	require.Equal(t, dhTestServiceEndpointProjectID, projectID)
+	require.Equal(t, dhTestServiceEndpointAzureRM, *serviceEndpointAfterRoundTrip)
+	require.Equal(t, dhTestServiceEndpointAzureRMProjectID, projectID)
 }
 
 // verifies that if an error is produced on create, the error is not swallowed
-func TestAzureDevOpsServiceEndpointDockerHub_Create_DoesNotSwallowError(t *testing.T) {
+func TestAzureDevOpsServiceEndpointAzureRM_Create_DoesNotSwallowError(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	r := resourceServiceEndpointDockerHub()
+	r := resourceServiceEndpointAzureRM()
 	resourceData := schema.TestResourceDataRaw(t, r.Schema, nil)
-	flattenServiceEndpointDockerHub(resourceData, &dhTestServiceEndpoint, dhTestServiceEndpointProjectID)
+	flattenServiceEndpointAzureRM(resourceData, &dhTestServiceEndpointAzureRM, dhTestServiceEndpointAzureRMProjectID)
 
 	buildClient := azdosdkmocks.NewMockServiceendpointClient(ctrl)
 	clients := &config.AggregatedClient{ServiceEndpointClient: buildClient, Ctx: context.Background()}
 
-	expectedArgs := serviceendpoint.CreateServiceEndpointArgs{Endpoint: &dhTestServiceEndpoint, Project: dhTestServiceEndpointProjectID}
+	expectedArgs := serviceendpoint.CreateServiceEndpointArgs{Endpoint: &dhTestServiceEndpointAzureRM, Project: dhTestServiceEndpointAzureRMProjectID}
 	buildClient.
 		EXPECT().
 		CreateServiceEndpoint(clients.Ctx, expectedArgs).
@@ -87,18 +92,18 @@ func TestAzureDevOpsServiceEndpointDockerHub_Create_DoesNotSwallowError(t *testi
 }
 
 // verifies that if an error is produced on a read, it is not swallowed
-func TestAzureDevOpsServiceEndpointDockerHub_Read_DoesNotSwallowError(t *testing.T) {
+func TestAzureDevOpsServiceEndpointAzureRM_Read_DoesNotSwallowError(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	r := resourceServiceEndpointDockerHub()
+	r := resourceServiceEndpointAzureRM()
 	resourceData := schema.TestResourceDataRaw(t, r.Schema, nil)
-	flattenServiceEndpointDockerHub(resourceData, &dhTestServiceEndpoint, dhTestServiceEndpointProjectID)
+	flattenServiceEndpointAzureRM(resourceData, &dhTestServiceEndpointAzureRM, dhTestServiceEndpointAzureRMProjectID)
 
 	buildClient := azdosdkmocks.NewMockServiceendpointClient(ctrl)
 	clients := &config.AggregatedClient{ServiceEndpointClient: buildClient, Ctx: context.Background()}
 
-	expectedArgs := serviceendpoint.GetServiceEndpointDetailsArgs{EndpointId: dhTestServiceEndpoint.Id, Project: dhTestServiceEndpointProjectID}
+	expectedArgs := serviceendpoint.GetServiceEndpointDetailsArgs{EndpointId: dhTestServiceEndpointAzureRM.Id, Project: dhTestServiceEndpointAzureRMProjectID}
 	buildClient.
 		EXPECT().
 		GetServiceEndpointDetails(clients.Ctx, expectedArgs).
@@ -110,18 +115,18 @@ func TestAzureDevOpsServiceEndpointDockerHub_Read_DoesNotSwallowError(t *testing
 }
 
 // verifies that if an error is produced on a delete, it is not swallowed
-func TestAzureDevOpsServiceEndpointDockerHub_Delete_DoesNotSwallowError(t *testing.T) {
+func TestAzureDevOpsServiceEndpointAzureRM_Delete_DoesNotSwallowError(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	r := resourceServiceEndpointDockerHub()
+	r := resourceServiceEndpointAzureRM()
 	resourceData := schema.TestResourceDataRaw(t, r.Schema, nil)
-	flattenServiceEndpointDockerHub(resourceData, &dhTestServiceEndpoint, dhTestServiceEndpointProjectID)
+	flattenServiceEndpointAzureRM(resourceData, &dhTestServiceEndpointAzureRM, dhTestServiceEndpointAzureRMProjectID)
 
 	buildClient := azdosdkmocks.NewMockServiceendpointClient(ctrl)
 	clients := &config.AggregatedClient{ServiceEndpointClient: buildClient, Ctx: context.Background()}
 
-	expectedArgs := serviceendpoint.DeleteServiceEndpointArgs{EndpointId: dhTestServiceEndpoint.Id, Project: dhTestServiceEndpointProjectID}
+	expectedArgs := serviceendpoint.DeleteServiceEndpointArgs{EndpointId: dhTestServiceEndpointAzureRM.Id, Project: dhTestServiceEndpointAzureRMProjectID}
 	buildClient.
 		EXPECT().
 		DeleteServiceEndpoint(clients.Ctx, expectedArgs).
@@ -133,21 +138,21 @@ func TestAzureDevOpsServiceEndpointDockerHub_Delete_DoesNotSwallowError(t *testi
 }
 
 // verifies that if an error is produced on an update, it is not swallowed
-func TestAzureDevOpsServiceEndpointDockerHub_Update_DoesNotSwallowError(t *testing.T) {
+func TestAzureDevOpsServiceEndpointAzureRM_Update_DoesNotSwallowError(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	r := resourceServiceEndpointDockerHub()
+	r := resourceServiceEndpointAzureRM()
 	resourceData := schema.TestResourceDataRaw(t, r.Schema, nil)
-	flattenServiceEndpointDockerHub(resourceData, &dhTestServiceEndpoint, dhTestServiceEndpointProjectID)
+	flattenServiceEndpointAzureRM(resourceData, &dhTestServiceEndpointAzureRM, dhTestServiceEndpointAzureRMProjectID)
 
 	buildClient := azdosdkmocks.NewMockServiceendpointClient(ctrl)
 	clients := &config.AggregatedClient{ServiceEndpointClient: buildClient, Ctx: context.Background()}
 
 	expectedArgs := serviceendpoint.UpdateServiceEndpointArgs{
-		Endpoint:   &dhTestServiceEndpoint,
-		EndpointId: dhTestServiceEndpoint.Id,
-		Project:    dhTestServiceEndpointProjectID,
+		Endpoint:   &dhTestServiceEndpointAzureRM,
+		EndpointId: dhTestServiceEndpointAzureRM.Id,
+		Project:    dhTestServiceEndpointAzureRMProjectID,
 	}
 
 	buildClient.
@@ -166,38 +171,44 @@ func TestAzureDevOpsServiceEndpointDockerHub_Update_DoesNotSwallowError(t *testi
 
 // validates that an apply followed by another apply (i.e., resource update) will be reflected in AzDO and the
 // underlying terraform state.
-func TestAccAzureDevOpsServiceEndpointDockerHub_CreateAndUpdate(t *testing.T) {
+func TestAccAzureDevOpsServiceEndpointAzureRm_CreateAndUpdate(t *testing.T) {
 	projectName := testhelper.TestAccResourcePrefix + acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
 	serviceEndpointNameFirst := testhelper.TestAccResourcePrefix + acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
 	serviceEndpointNameSecond := testhelper.TestAccResourcePrefix + acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
 
-	tfSvcEpNode := "azuredevops_serviceendpoint_dockerhub.serviceendpoint"
+	tfSvcEpNode := "azuredevops_serviceendpoint_azurerm.serviceendpointrm"
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testhelper.TestAccPreCheck(t) },
 		Providers:    testAccProviders,
-		CheckDestroy: testAccServiceEndpointDockerHubCheckDestroy,
+		CheckDestroy: testAccServiceEndpointAzureRMCheckDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testhelper.TestAccServiceEndpointDockerHubResource(projectName, serviceEndpointNameFirst),
+				Config: testhelper.TestAccServiceEndpointAzureRMResource(projectName, serviceEndpointNameFirst),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttrSet(tfSvcEpNode, "project_id"),
-					resource.TestCheckResourceAttrSet(tfSvcEpNode, "docker_username"),
-					resource.TestCheckResourceAttrSet(tfSvcEpNode, "docker_email"),
-					resource.TestCheckResourceAttr(tfSvcEpNode, "docker_password", ""),
-					resource.TestCheckResourceAttrSet(tfSvcEpNode, "docker_password_hash"),
+					resource.TestCheckResourceAttrSet(tfSvcEpNode, "azurerm_spn_clientid"),
+					resource.TestCheckResourceAttr(tfSvcEpNode, "azurerm_spn_clientsecret", ""),
+					resource.TestCheckResourceAttrSet(tfSvcEpNode, "azurerm_spn_tenantid"),
+					resource.TestCheckResourceAttrSet(tfSvcEpNode, "azurerm_spn_clientsecret_hash"),
 					resource.TestCheckResourceAttr(tfSvcEpNode, "service_endpoint_name", serviceEndpointNameFirst),
-					testAccCheckServiceEndpointDockerHubResourceExists(serviceEndpointNameFirst),
+					resource.TestCheckResourceAttrSet(tfSvcEpNode, "azurerm_subscription_id"),
+					resource.TestCheckResourceAttrSet(tfSvcEpNode, "azurerm_subscription_name"),
+					resource.TestCheckResourceAttrSet(tfSvcEpNode, "azurerm_scope"),
+					testAccCheckServiceEndpointAzureRMResourceExists(serviceEndpointNameFirst),
 				),
 			}, {
-				Config: testhelper.TestAccServiceEndpointDockerHubResource(projectName, serviceEndpointNameSecond),
+				Config: testhelper.TestAccServiceEndpointAzureRMResource(projectName, serviceEndpointNameSecond),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttrSet(tfSvcEpNode, "project_id"),
-					resource.TestCheckResourceAttrSet(tfSvcEpNode, "docker_username"),
-					resource.TestCheckResourceAttrSet(tfSvcEpNode, "docker_email"),
-					resource.TestCheckResourceAttr(tfSvcEpNode, "docker_password", ""),
-					resource.TestCheckResourceAttrSet(tfSvcEpNode, "docker_password_hash"),
+					resource.TestCheckResourceAttrSet(tfSvcEpNode, "azurerm_spn_clientid"),
+					resource.TestCheckResourceAttr(tfSvcEpNode, "azurerm_spn_clientsecret", ""),
+					resource.TestCheckResourceAttrSet(tfSvcEpNode, "azurerm_spn_tenantid"),
+					resource.TestCheckResourceAttrSet(tfSvcEpNode, "azurerm_spn_clientsecret_hash"),
+					resource.TestCheckResourceAttrSet(tfSvcEpNode, "azurerm_subscription_id"),
+					resource.TestCheckResourceAttrSet(tfSvcEpNode, "azurerm_subscription_name"),
+					resource.TestCheckResourceAttrSet(tfSvcEpNode, "azurerm_scope"),
 					resource.TestCheckResourceAttr(tfSvcEpNode, "service_endpoint_name", serviceEndpointNameSecond),
-					testAccCheckServiceEndpointDockerHubResourceExists(serviceEndpointNameSecond),
+					testAccCheckServiceEndpointAzureRMResourceExists(serviceEndpointNameSecond),
 				),
 			},
 		},
@@ -206,14 +217,14 @@ func TestAccAzureDevOpsServiceEndpointDockerHub_CreateAndUpdate(t *testing.T) {
 
 // Given the name of an AzDO service endpoint, this will return a function that will check whether
 // or not the resource (1) exists in the state and (2) exist in AzDO and (3) has the correct name
-func testAccCheckServiceEndpointDockerHubResourceExists(expectedName string) resource.TestCheckFunc {
+func testAccCheckServiceEndpointAzureRMResourceExists(expectedName string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		serviceEndpointDef, ok := s.RootModule().Resources["azuredevops_serviceendpoint_dockerhub.serviceendpoint"]
+		serviceEndpointDef, ok := s.RootModule().Resources["azuredevops_serviceendpoint_azurerm.serviceendpointrm"]
 		if !ok {
 			return fmt.Errorf("Did not find a service endpoint in the TF state")
 		}
 
-		serviceEndpoint, err := getServiceEndpointDockerHubFromResource(serviceEndpointDef)
+		serviceEndpoint, err := getServiceEndpointAzureRMFromResource(serviceEndpointDef)
 		if err != nil {
 			return err
 		}
@@ -228,14 +239,14 @@ func testAccCheckServiceEndpointDockerHubResourceExists(expectedName string) res
 
 // verifies that all service endpoints referenced in the state are destroyed. This will be invoked
 // *after* terrafform destroys the resource but *before* the state is wiped clean.
-func testAccServiceEndpointDockerHubCheckDestroy(s *terraform.State) error {
+func testAccServiceEndpointAzureRMCheckDestroy(s *terraform.State) error {
 	for _, resource := range s.RootModule().Resources {
-		if resource.Type != "azuredevops_serviceendpoint_dockerhub" {
+		if resource.Type != "azuredevops_serviceendpoint_azurerm" {
 			continue
 		}
 
 		// indicates the service endpoint still exists - this should fail the test
-		if _, err := getServiceEndpointDockerHubFromResource(resource); err == nil {
+		if _, err := getServiceEndpointAzureRMFromResource(resource); err == nil {
 			return fmt.Errorf("Unexpectedly found a service endpoint that should be deleted")
 		}
 	}
@@ -244,7 +255,7 @@ func testAccServiceEndpointDockerHubCheckDestroy(s *terraform.State) error {
 }
 
 // given a resource from the state, return a service endpoint (and error)
-func getServiceEndpointDockerHubFromResource(resource *terraform.ResourceState) (*serviceendpoint.ServiceEndpoint, error) {
+func getServiceEndpointAzureRMFromResource(resource *terraform.ResourceState) (*serviceendpoint.ServiceEndpoint, error) {
 	serviceEndpointDefID, err := uuid.Parse(resource.Primary.ID)
 	if err != nil {
 		return nil, err
