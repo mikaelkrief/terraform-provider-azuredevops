@@ -167,7 +167,6 @@ func genServiceEndpointReadFunc(flatFunc flatFunc) func(d *schema.ResourceData, 
 	}
 }
 
-
 func genServiceEndpointUpdateFunc(flatFunc flatFunc, expandFunc expandFunc) schema.UpdateFunc {
 	return func(d *schema.ResourceData, m interface{}) error {
 		clients := m.(*config.AggregatedClient)

@@ -178,7 +178,7 @@ func TestAccAzureDevOpsServiceEndpointAzureRm_CreateAndUpdate(t *testing.T) {
 
 	tfSvcEpNode := "azuredevops_serviceendpoint_azurerm.serviceendpointrm"
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testhelper.TestAccPreCheck(t,nil) },
+		PreCheck:     func() { testhelper.TestAccPreCheck(t, nil) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccServiceEndpointAzureRMCheckDestroy,
 		Steps: []resource.TestStep{

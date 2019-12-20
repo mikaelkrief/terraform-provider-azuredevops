@@ -8,16 +8,14 @@ import (
 	"github.com/microsoft/terraform-provider-azuredevops/azuredevops/utils/tfhelper"
 )
 
-
-
 func resourceServiceEndpointAzureRM() *schema.Resource {
 	r := crud.GenBaseServiceEndpointResource(flattenServiceEndpointAzureRM, expandServiceEndpointAzureRM)
 	crud.MakeUnprotectedSchema(r, "azurerm_spn_clientid", "ARM_CLIENT_ID", "The service principal id which should be used.")
 	crud.MakeProtectedSchema(r, "azurerm_spn_clientsecret", "ARM_CLIENT_SECRET", "The service principal secret which should be used.")
-	crud.MakeUnprotectedSchema(r, "azurerm_spn_tenantid","ARM_TENANT_ID", "The service principal tenant id which should be used.")
-	crud.MakeUnprotectedSchema(r, "azurerm_subscription_id","ARM_SUBSCRIPTION_ID", "The Azure subscription Id which should be used.")
-	crud.MakeUnprotectedSchema(r, "azurerm_subscription_name","ARM_SUBSCRIPTION_NAME", "The Azure subscription name which should be used.")
-	crud.MakeUnprotectedSchema(r, "azurerm_scope","ARM_SCOPE", "The Azure scope which should be used by the spn.")
+	crud.MakeUnprotectedSchema(r, "azurerm_spn_tenantid", "ARM_TENANT_ID", "The service principal tenant id which should be used.")
+	crud.MakeUnprotectedSchema(r, "azurerm_subscription_id", "ARM_SUBSCRIPTION_ID", "The Azure subscription Id which should be used.")
+	crud.MakeUnprotectedSchema(r, "azurerm_subscription_name", "ARM_SUBSCRIPTION_NAME", "The Azure subscription name which should be used.")
+	crud.MakeUnprotectedSchema(r, "azurerm_scope", "ARM_SCOPE", "The Azure scope which should be used by the spn.")
 	return r
 }
 
@@ -26,20 +24,20 @@ func expandServiceEndpointAzureRM(d *schema.ResourceData) (*serviceendpoint.Serv
 	serviceEndpoint, projectID := crud.DoBaseExpansion(d)
 	serviceEndpoint.Authorization = &serviceendpoint.EndpointAuthorization{
 		Parameters: &map[string]string{
-			"authenticationType": "spnKey",
-			"scope": d.Get("azurerm_scope").(string),
-			"serviceprincipalid": d.Get("azurerm_spn_clientid").(string),
-			"serviceprincipalkey":    d.Get("azurerm_spn_clientsecret").(string),
-			"tenantid":  d.Get("azurerm_spn_tenantid").(string),
+			"authenticationType":  "spnKey",
+			"scope":               d.Get("azurerm_scope").(string),
+			"serviceprincipalid":  d.Get("azurerm_spn_clientid").(string),
+			"serviceprincipalkey": d.Get("azurerm_spn_clientsecret").(string),
+			"tenantid":            d.Get("azurerm_spn_tenantid").(string),
 		},
 		Scheme: converter.String("ServicePrincipal"),
 	}
 	serviceEndpoint.Data = &map[string]string{
-		"creationMode": "Manual",
-		"environment": "AzureCloud",
-		"scopeLevel": "Subscription",
-		"SubscriptionId":  d.Get("azurerm_subscription_id").(string),
-		"SubscriptionName":  d.Get("azurerm_subscription_name").(string),
+		"creationMode":     "Manual",
+		"environment":      "AzureCloud",
+		"scopeLevel":       "Subscription",
+		"SubscriptionId":   d.Get("azurerm_subscription_id").(string),
+		"SubscriptionName": d.Get("azurerm_subscription_name").(string),
 	}
 	serviceEndpoint.Type = converter.String("azurerm")
 	serviceEndpoint.Url = converter.String("https://management.azure.com/")
