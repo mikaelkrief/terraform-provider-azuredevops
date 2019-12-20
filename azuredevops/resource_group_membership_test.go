@@ -24,61 +24,6 @@ import (
  * Begin unit tests
  */
 
-func TestGroupMembership_ComputeMembershipDiff_ResolvesDiffProperly(t *testing.T) {
-	// If you are curious about the use of map here, have a read through this article:
-	//	https://stackoverflow.com/questions/34018908/golang-why-dont-we-have-a-set-datastructure
-	type membershipsTestMeta struct {
-		old      map[string]bool
-		new      map[string]bool
-		toAdd    map[string]bool
-		toRemove map[string]bool
-	}
-	// table of tests for computing membership diffs
-	tests := []membershipsTestMeta{{
-		// add single member
-		old:      toStringSet("A"),
-		new:      toStringSet("A", "B"),
-		toAdd:    toStringSet("B"),
-		toRemove: toStringSet(),
-	}, {
-		// remove single member
-		old:      toStringSet("A", "B"),
-		new:      toStringSet("A"),
-		toAdd:    toStringSet(),
-		toRemove: toStringSet("B"),
-	}, {
-		// add and remove members
-		old:      toStringSet("A", "B", "C", "D"),
-		new:      toStringSet("A", "B", "E", "F"),
-		toAdd:    toStringSet("E", "F"),
-		toRemove: toStringSet("C", "D"),
-	}, {
-		// no change to members
-		old:      toStringSet("A"),
-		new:      toStringSet("A"),
-		toAdd:    toStringSet(),
-		toRemove: toStringSet(),
-	}}
-
-	for _, test := range tests {
-		toAdd, toRemove := computeMembershipDiff("", test.old, test.new)
-		require.Equal(t, len(test.toAdd), len(*toAdd))
-		require.Equal(t, len(test.toRemove), len(*toRemove))
-
-		for _, membership := range *toAdd {
-			if _, exists := test.toAdd[*membership.MemberDescriptor]; !exists {
-				require.Fail(t, fmt.Sprintf("%s was unexpectedly not in the list of membershps to add!", *membership.MemberDescriptor))
-			}
-		}
-
-		for _, membership := range *toRemove {
-			if _, exists := test.toRemove[*membership.MemberDescriptor]; !exists {
-				require.Fail(t, fmt.Sprintf("%s was unexpectedly not in the list of membershps to remove!", *membership.MemberDescriptor))
-			}
-		}
-	}
-}
-
 func getGroupMembershipResourceData(t *testing.T, group string, members ...string) *schema.ResourceData {
 	d := schema.TestResourceDataRaw(t, resourceGroupMembership().Schema, nil)
 	d.Set("group", group)
@@ -162,42 +107,42 @@ func TestGroupMembership_Read_DoesNotSwallowErrors(t *testing.T) {
 //
 // Note: This will be uncommented in https://github.com/microsoft/terraform-provider-azuredevops/issues/174
 //
-// func TestAccGroupMembership_CreateAndRemove(t *testing.T) {
-// 	projectName := testAccResourcePrefix + acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
-// 	userPrincipalName := os.Getenv("AZDO_TEST_AAD_USER_EMAIL")
-// 	groupName := "Build Administrators"
-// 	tfNode := "azuredevops_group_membership.membership"
+/*func TestAccGroupMembership_CreateAndRemove(t *testing.T) {
+	projectName := testAccResourcePrefix + acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
+	userPrincipalName := os.Getenv("AZDO_TEST_AAD_USER_EMAIL")
+	groupName := "Build Administrators"
+	tfNode := "azuredevops_group_membership.membership"
 
-// 	tfStanzaWithMembership := testAccGroupMembershipResource(projectName, groupName, userPrincipalName)
-// 	tfStanzaWithoutMembership := testAccGroupMembershipDependencies(projectName, groupName, userPrincipalName)
+	tfStanzaWithMembership := testAccGroupMembershipResource(projectName, groupName, userPrincipalName)
+	tfStanzaWithoutMembership := testAccGroupMembershipDependencies(projectName, groupName, userPrincipalName)
 
-// 	// This test differs from most other acceptance tests in the following ways:
-// 	//	- The second step is the same as the first except it omits the group membershp.
-// 	//	  This lets us test that the membership is removed in isolation of the project being deleted
-// 	//	- There is no CheckDestroy function because that is covered based on the above point
-// 	resource.Test(t, resource.TestCase{
-// 		PreCheck:  func() { testAccPreCheck(t) },
-// 		Providers: testAccProviders,
-// 		Steps: []resource.TestStep{
-// 			{
-// 				// add the group membership
-// 				Config: tfStanzaWithMembership,
-// 				Check: resource.ComposeTestCheckFunc(
-// 					resource.TestCheckResourceAttrSet(tfNode, "id"),
-// 					resource.TestCheckResourceAttrSet(tfNode, "group"),
-// 					// this attribute specifies the number of members in the resource state. the
-// 					// syntax is how terraform maps complex types into a flattened map.
-// 					resource.TestCheckResourceAttr(tfNode, "members.#", "1"),
-// 					testAccVerifyGroupMembershipMatchesState(),
-// 				),
-// 			}, {
-// 				// remove the group membership
-// 				Config: tfStanzaWithoutMembership,
-// 				Check:  testAccVerifyGroupMembershipMatchesState(),
-// 			},
-// 		},
-// 	})
-// }
+	// 	// This test differs from most other acceptance tests in the following ways:
+	// 	//	- The second step is the same as the first except it omits the group membershp.
+	// 	//	  This lets us test that the membership is removed in isolation of the project being deleted
+	// 	//	- There is no CheckDestroy function because that is covered based on the above point
+	resource.Test(t, resource.TestCase{
+		PreCheck:  func() { testAccPreCheck(t) },
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				// add the group membership
+				Config: tfStanzaWithMembership,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttrSet(tfNode, "id"),
+					resource.TestCheckResourceAttrSet(tfNode, "group"),
+					// this attribute specifies the number of members in the resource state. the
+					// syntax is how terraform maps complex types into a flattened map.
+					resource.TestCheckResourceAttr(tfNode, "members.#", "1"),
+					testAccVerifyGroupMembershipMatchesState(),
+				),
+			}, {
+				// 				// remove the group membership
+				Config: tfStanzaWithoutMembership,
+				Check:  testAccVerifyGroupMembershipMatchesState(),
+			},
+		},
+	})
+}*/
 
 // Verifies that the group membership in AzDO matches the group membership specified by the state
 func testAccVerifyGroupMembershipMatchesState() resource.TestCheckFunc {
