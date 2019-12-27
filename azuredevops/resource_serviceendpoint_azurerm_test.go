@@ -24,18 +24,18 @@ import (
 	"github.com/microsoft/azure-devops-go-api/azuredevops/serviceendpoint"
 )
 
-var dhTestServiceEndpointAzureRMID = uuid.New()
-var dhRandomServiceEndpointAzureRMProjectID = uuid.New().String()
-var dhTestServiceEndpointAzureRMProjectID = &dhRandomServiceEndpointAzureRMProjectID
+var azurermTestServiceEndpointAzureRMID = uuid.New()
+var azurermRandomServiceEndpointAzureRMProjectID = uuid.New().String()
+var azurermTestServiceEndpointAzureRMProjectID = &azurermRandomServiceEndpointAzureRMProjectID
 
-var dhTestServiceEndpointAzureRM = serviceendpoint.ServiceEndpoint{ //todo change
+var azurermTestServiceEndpointAzureRM = serviceendpoint.ServiceEndpoint{
 	Authorization: &serviceendpoint.EndpointAuthorization{
 		Parameters: &map[string]string{
 			"authenticationType":  "spnKey",
-			"scope":               "/subscriptions/fa8e7d5e-84f9-4477-904f-852054f85586",
-			"serviceprincipalid":  "e31eaaac-47da-4156-b433-9b0538c94b7e",
-			"serviceprincipalkey": "d96d8515-20b2-4413-8879-27c5d040cbc2",
-			"tenantid":            "aba07645-051c-44b4-b806-c34d33f3dcd1",
+			"scope":               "/subscriptions/fa8e7d5e-84f9-4477-904f-852054f85586", //fake value
+			"serviceprincipalid":  "e31eaaac-47da-4156-b433-9b0538c94b7e", //fake value
+			"serviceprincipalkey": "d96d8515-20b2-4413-8879-27c5d040cbc2", //fake value
+			"tenantid":            "aba07645-051c-44b4-b806-c34d33f3dcd1", //fake value
 		},
 		Scheme: converter.String("ServicePrincipal"),
 	},
@@ -43,10 +43,10 @@ var dhTestServiceEndpointAzureRM = serviceendpoint.ServiceEndpoint{ //todo chang
 		"creationMode":     "Manual",
 		"environment":      "AzureCloud",
 		"scopeLevel":       "Subscription",
-		"SubscriptionId":   "42125daf-72fd-417c-9ea7-080690625ad3",
+		"SubscriptionId":   "42125daf-72fd-417c-9ea7-080690625ad3",  //fake value
 		"SubscriptionName": "SUBSCRIPTION_TEST",
 	},
-	Id:    &dhTestServiceEndpointAzureRMID,
+	Id:    &azurermTestServiceEndpointAzureRMID,
 	Name:  converter.String("_AZURERM_UNIT_TEST_CONN_NAME"),
 	Owner: converter.String("library"), // Supported values are "library", "agentcloud"
 	Type:  converter.String("azurerm"),
@@ -60,12 +60,12 @@ var dhTestServiceEndpointAzureRM = serviceendpoint.ServiceEndpoint{ //todo chang
 // verifies that the flatten/expand round trip yields the same service endpoint
 func TestAzureDevOpsServiceEndpointAzureRM_ExpandFlatten_Roundtrip(t *testing.T) {
 	resourceData := schema.TestResourceDataRaw(t, resourceServiceEndpointAzureRM().Schema, nil)
-	flattenServiceEndpointAzureRM(resourceData, &dhTestServiceEndpointAzureRM, dhTestServiceEndpointAzureRMProjectID)
+	flattenServiceEndpointAzureRM(resourceData, &azurermTestServiceEndpointAzureRM, azurermTestServiceEndpointAzureRMProjectID)
 
 	serviceEndpointAfterRoundTrip, projectID := expandServiceEndpointAzureRM(resourceData)
 
-	require.Equal(t, dhTestServiceEndpointAzureRM, *serviceEndpointAfterRoundTrip)
-	require.Equal(t, dhTestServiceEndpointAzureRMProjectID, projectID)
+	require.Equal(t, azurermTestServiceEndpointAzureRM, *serviceEndpointAfterRoundTrip)
+	require.Equal(t, azurermTestServiceEndpointAzureRMProjectID, projectID)
 }
 
 // verifies that if an error is produced on create, the error is not swallowed
@@ -75,12 +75,12 @@ func TestAzureDevOpsServiceEndpointAzureRM_Create_DoesNotSwallowError(t *testing
 
 	r := resourceServiceEndpointAzureRM()
 	resourceData := schema.TestResourceDataRaw(t, r.Schema, nil)
-	flattenServiceEndpointAzureRM(resourceData, &dhTestServiceEndpointAzureRM, dhTestServiceEndpointAzureRMProjectID)
+	flattenServiceEndpointAzureRM(resourceData, &azurermTestServiceEndpointAzureRM, azurermTestServiceEndpointAzureRMProjectID)
 
 	buildClient := azdosdkmocks.NewMockServiceendpointClient(ctrl)
 	clients := &config.AggregatedClient{ServiceEndpointClient: buildClient, Ctx: context.Background()}
 
-	expectedArgs := serviceendpoint.CreateServiceEndpointArgs{Endpoint: &dhTestServiceEndpointAzureRM, Project: dhTestServiceEndpointAzureRMProjectID}
+	expectedArgs := serviceendpoint.CreateServiceEndpointArgs{Endpoint: &azurermTestServiceEndpointAzureRM, Project: azurermTestServiceEndpointAzureRMProjectID}
 	buildClient.
 		EXPECT().
 		CreateServiceEndpoint(clients.Ctx, expectedArgs).
@@ -98,12 +98,12 @@ func TestAzureDevOpsServiceEndpointAzureRM_Read_DoesNotSwallowError(t *testing.T
 
 	r := resourceServiceEndpointAzureRM()
 	resourceData := schema.TestResourceDataRaw(t, r.Schema, nil)
-	flattenServiceEndpointAzureRM(resourceData, &dhTestServiceEndpointAzureRM, dhTestServiceEndpointAzureRMProjectID)
+	flattenServiceEndpointAzureRM(resourceData, &azurermTestServiceEndpointAzureRM, azurermTestServiceEndpointAzureRMProjectID)
 
 	buildClient := azdosdkmocks.NewMockServiceendpointClient(ctrl)
 	clients := &config.AggregatedClient{ServiceEndpointClient: buildClient, Ctx: context.Background()}
 
-	expectedArgs := serviceendpoint.GetServiceEndpointDetailsArgs{EndpointId: dhTestServiceEndpointAzureRM.Id, Project: dhTestServiceEndpointAzureRMProjectID}
+	expectedArgs := serviceendpoint.GetServiceEndpointDetailsArgs{EndpointId: azurermTestServiceEndpointAzureRM.Id, Project: azurermTestServiceEndpointAzureRMProjectID}
 	buildClient.
 		EXPECT().
 		GetServiceEndpointDetails(clients.Ctx, expectedArgs).
@@ -121,12 +121,12 @@ func TestAzureDevOpsServiceEndpointAzureRM_Delete_DoesNotSwallowError(t *testing
 
 	r := resourceServiceEndpointAzureRM()
 	resourceData := schema.TestResourceDataRaw(t, r.Schema, nil)
-	flattenServiceEndpointAzureRM(resourceData, &dhTestServiceEndpointAzureRM, dhTestServiceEndpointAzureRMProjectID)
+	flattenServiceEndpointAzureRM(resourceData, &azurermTestServiceEndpointAzureRM, azurermTestServiceEndpointAzureRMProjectID)
 
 	buildClient := azdosdkmocks.NewMockServiceendpointClient(ctrl)
 	clients := &config.AggregatedClient{ServiceEndpointClient: buildClient, Ctx: context.Background()}
 
-	expectedArgs := serviceendpoint.DeleteServiceEndpointArgs{EndpointId: dhTestServiceEndpointAzureRM.Id, Project: dhTestServiceEndpointAzureRMProjectID}
+	expectedArgs := serviceendpoint.DeleteServiceEndpointArgs{EndpointId: azurermTestServiceEndpointAzureRM.Id, Project: azurermTestServiceEndpointAzureRMProjectID}
 	buildClient.
 		EXPECT().
 		DeleteServiceEndpoint(clients.Ctx, expectedArgs).
@@ -144,15 +144,15 @@ func TestAzureDevOpsServiceEndpointAzureRM_Update_DoesNotSwallowError(t *testing
 
 	r := resourceServiceEndpointAzureRM()
 	resourceData := schema.TestResourceDataRaw(t, r.Schema, nil)
-	flattenServiceEndpointAzureRM(resourceData, &dhTestServiceEndpointAzureRM, dhTestServiceEndpointAzureRMProjectID)
+	flattenServiceEndpointAzureRM(resourceData, &azurermTestServiceEndpointAzureRM, azurermTestServiceEndpointAzureRMProjectID)
 
 	buildClient := azdosdkmocks.NewMockServiceendpointClient(ctrl)
 	clients := &config.AggregatedClient{ServiceEndpointClient: buildClient, Ctx: context.Background()}
 
 	expectedArgs := serviceendpoint.UpdateServiceEndpointArgs{
-		Endpoint:   &dhTestServiceEndpointAzureRM,
-		EndpointId: dhTestServiceEndpointAzureRM.Id,
-		Project:    dhTestServiceEndpointAzureRMProjectID,
+		Endpoint:   &azurermTestServiceEndpointAzureRM,
+		EndpointId: azurermTestServiceEndpointAzureRM.Id,
+		Project:    azurermTestServiceEndpointAzureRMProjectID,
 	}
 
 	buildClient.
