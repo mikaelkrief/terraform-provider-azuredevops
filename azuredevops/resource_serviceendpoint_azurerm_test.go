@@ -33,9 +33,9 @@ var azurermTestServiceEndpointAzureRM = serviceendpoint.ServiceEndpoint{
 		Parameters: &map[string]string{
 			"authenticationType":  "spnKey",
 			"scope":               "/subscriptions/fa8e7d5e-84f9-4477-904f-852054f85586", //fake value
-			"serviceprincipalid":  "e31eaaac-47da-4156-b433-9b0538c94b7e", //fake value
-			"serviceprincipalkey": "d96d8515-20b2-4413-8879-27c5d040cbc2", //fake value
-			"tenantid":            "aba07645-051c-44b4-b806-c34d33f3dcd1", //fake value
+			"serviceprincipalid":  "e31eaaac-47da-4156-b433-9b0538c94b7e",                //fake value
+			"serviceprincipalkey": "d96d8515-20b2-4413-8879-27c5d040cbc2",                //fake value
+			"tenantid":            "aba07645-051c-44b4-b806-c34d33f3dcd1",                //fake value
 		},
 		Scheme: converter.String("ServicePrincipal"),
 	},
@@ -43,7 +43,7 @@ var azurermTestServiceEndpointAzureRM = serviceendpoint.ServiceEndpoint{
 		"creationMode":     "Manual",
 		"environment":      "AzureCloud",
 		"scopeLevel":       "Subscription",
-		"SubscriptionId":   "42125daf-72fd-417c-9ea7-080690625ad3",  //fake value
+		"SubscriptionId":   "42125daf-72fd-417c-9ea7-080690625ad3", //fake value
 		"SubscriptionName": "SUBSCRIPTION_TEST",
 	},
 	Id:    &azurermTestServiceEndpointAzureRMID,
