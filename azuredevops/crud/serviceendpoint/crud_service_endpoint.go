@@ -10,7 +10,6 @@ import (
 	"github.com/microsoft/terraform-provider-azuredevops/azuredevops/utils/converter"
 	"github.com/microsoft/terraform-provider-azuredevops/azuredevops/utils/tfhelper"
 	"github.com/microsoft/terraform-provider-azuredevops/azuredevops/utils/validate"
-
 )
 
 type flatFunc func(d *schema.ResourceData, serviceEndpoint *serviceendpoint.ServiceEndpoint, projectID *string)

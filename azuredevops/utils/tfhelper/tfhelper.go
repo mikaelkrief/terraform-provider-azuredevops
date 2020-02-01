@@ -114,7 +114,6 @@ func ParseImportedID(id string) (string, int, error) {
 	return project, resourceID, nil
 }
 
-
 // ParseImportedName parse the imported Id (Name) from the terraform import
 func ParseImportedName(id string) (string, string, error) {
 	parts := strings.SplitN(id, "/", 2)

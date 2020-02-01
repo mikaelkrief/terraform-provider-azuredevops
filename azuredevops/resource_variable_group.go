@@ -349,7 +349,6 @@ func flattenAllowAccess(d *schema.ResourceData, definitionResource *[]build.Defi
 	d.Set("allow_access", allowAccess)
 }
 
-
 // ParseImportedProjectIDAndVariableGroupID : Parse the Id (projectId/variableGroupId) or (projectName/variableGroupId)
 func ParseImportedProjectIDAndVariableGroupID(clients *config.AggregatedClient, id string) (string, int, error) {
 	project, resourceID, err := tfhelper.ParseImportedID(id)
@@ -365,4 +364,3 @@ func ParseImportedProjectIDAndVariableGroupID(clients *config.AggregatedClient, 
 
 	return currentProject.Id.String(), resourceID, nil
 }
-
