@@ -9,7 +9,7 @@ import (
 )
 
 func resourceServiceEndpointAzureRM() *schema.Resource {
-	r := crud.GenBaseServiceEndpointResource(flattenServiceEndpointAzureRM, expandServiceEndpointAzureRM)
+	r := crud.GenBaseServiceEndpointResource(flattenServiceEndpointAzureRM, expandServiceEndpointAzureRM, parseImportedProjectIDAndServiceEndpointID)
 	crud.MakeUnprotectedSchema(r, "azurerm_spn_clientid", "ARM_CLIENT_ID", "The service principal id which should be used.")
 	crud.MakeProtectedSchema(r, "azurerm_spn_clientsecret", "ARM_CLIENT_SECRET", "The service principal secret which should be used.")
 	crud.MakeUnprotectedSchema(r, "azurerm_spn_tenantid", "ARM_TENANT_ID", "The service principal tenant id which should be used.")

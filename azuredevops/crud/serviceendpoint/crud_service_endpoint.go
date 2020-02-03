@@ -114,7 +114,7 @@ func MakeProtectedSchema(r *schema.Resource, keyName, envVarName, description st
 		DefaultFunc:      schema.EnvDefaultFunc(envVarName, nil),
 		Description:      description,
 		Sensitive:        true,
-		DiffSuppressFunc: tfhelper.DiffFuncSupressSecretChanged,
+		DiffSuppressFunc: tfhelper.DiffFuncSuppressSecretChanged,
 	}
 
 	secretHashKey, secretHashSchema := tfhelper.GenerateSecreteMemoSchema(keyName)

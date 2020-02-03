@@ -338,7 +338,7 @@ func ParseImportedProjectIDAndID(clients *config.AggregatedClient, id string) (s
 	}
 
 	// Get the project ID
-	currentProject, err := projectRead(clients, project, project)
+	currentProject, err := ProjectRead(clients, project, project)
 	if err != nil {
 		return "", 0, err
 	}
@@ -354,7 +354,7 @@ func ParseImportedProjectIDAndUUID(clients *config.AggregatedClient, id string) 
 	}
 
 	// Get the project ID
-	currentProject, err := projectRead(clients, project, project)
+	currentProject, err := ProjectRead(clients, project, project)
 	if err != nil {
 		return "", "", err
 	}
